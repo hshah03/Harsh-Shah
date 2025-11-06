@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Script Practice App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            min-height: 250px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+
+        .help-text {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #555;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ee5a6f;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .practice-view {
+            display: none;
+        }
+
+        .practice-view.active {
+            display: block;
+        }
+
+        .script-display {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 150px;
+        }
+
+        .line {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1em;
+        }
+
+        .line.other {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+
+        .line.user {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+        }
+
+        .line.current {
+            background: #fff9c4;
+            border-left: 4px solid #fbc02d;
+            box-shadow: 0 3px 10px rgba(251, 192, 45, 0.3);
+        }
+
+        .line .speaker {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .line .text {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .status {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .status-indicator.speaking {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-indicator.listening {
+            background: #ff9800;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-indicator.waiting {
+            background: #9e9e9e;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .progress {
+            background: #e0e0e0;
+            height: 8px;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #c62828;
+        }
+
+        .setup-view, .practice-view {
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 Script Practice App</h1>
+            <p>Master your lines with AI-powered practice</p>
+        </div>
+
+        <div class="content">
+            <!-- Setup View -->
+            <div id="setupView" class="setup-view">
+                <div class="section">
+                    <h2>Setup Your Script</h2>
+
+                    <div class="input-group">
+                        <label for="yourName">Your Character Name:</label>
+                        <input type="text" id="yourName" placeholder="e.g., John, Alice, Character 1">
+                        <div class="help-text">Enter your character's name in the script</div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="scriptInput">Enter Your Script:</label>
+                        <textarea id="scriptInput" placeholder="JOHN: Hello, how are you?
+MARY: I'm doing great, thanks for asking!
+JOHN: That's wonderful to hear.
+MARY: How about you?
+JOHN: I'm doing well too."></textarea>
+                        <div class="help-text">Format: SPEAKER: line text (one line per row)</div>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="startPractice()">Start Practice</button>
+                    </div>
+
+                    <div id="errorMessage" class="error-message hidden"></div>
+                </div>
+            </div>
+
+            <!-- Practice View -->
+            <div id="practiceView" class="practice-view">
+                <div class="section">
+                    <h2>Practice Mode</h2>
+
+                    <div class="status">
+                        <span id="statusIndicator" class="status-indicator waiting">Ready</span>
+                        <p id="statusText" style="margin-top: 10px; color: #555;">Click "Start" to begin</p>
+                    </div>
+
+                    <div class="progress">
+                        <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+                    </div>
+
+                    <div class="script-display" id="scriptDisplay">
+                        <!-- Lines will be displayed here -->
+                    </div>
+
+                    <div class="button-group">
+                        <button id="startBtn" class="btn-primary" onclick="startReading()">Start</button>
+                        <button id="pauseBtn" class="btn-secondary" onclick="pausePractice()" disabled>Pause</button>
+                        <button id="resumeBtn" class="btn-primary hidden" onclick="resumePractice()">Resume</button>
+                        <button id="restartBtn" class="btn-secondary" onclick="restartLine()">Restart Current</button>
+                        <button class="btn-danger" onclick="exitPractice()">Exit Practice</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let script = [];
+        let userName = '';
+        let currentLineIndex = 0;
+        let isPaused = false;
+        let isListening = false;
+
+        // Speech synthesis
+        const synth = window.speechSynthesis;
+
+        // Speech recognition
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+
+        // Initialize speech recognition if available
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                console.log('User said:', transcript);
+                handleUserSpeech(transcript);
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                    updateStatus('waiting', 'Error: ' + event.error + '. Click "Restart Current" to try again.');
+                }
+            };
+
+            recognition.onend = () => {
+                if (isListening && !isPaused) {
+                    // Restart recognition if we're still in listening mode
+                    setTimeout(() => {
+                        if (isListening && !isPaused) {
+                            recognition.start();
+                        }
+                    }, 100);
+                }
+            };
+        }
+
+        function startPractice() {
+            const nameInput = document.getElementById('yourName').value.trim();
+            const scriptInput = document.getElementById('scriptInput').value.trim();
+
+            if (!nameInput) {
+                showError('Please enter your character name');
+                return;
+            }
+
+            if (!scriptInput) {
+                showError('Please enter a script');
+                return;
+            }
+
+            if (!SpeechRecognition) {
+                showError('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+                return;
+            }
+
+            // Parse the script
+            userName = nameInput.toUpperCase();
+            script = parseScript(scriptInput);
+
+            if (script.length === 0) {
+                showError('Could not parse script. Make sure it follows the format: SPEAKER: line');
+                return;
+            }
+
+            // Switch to practice view
+            document.getElementById('setupView').classList.add('hidden');
+            document.getElementById('practiceView').classList.add('active');
+
+            // Display the script
+            displayScript();
+            currentLineIndex = 0;
+            updateProgress();
+        }
+
+        function parseScript(scriptText) {
+            const lines = scriptText.split('\n');
+            const parsed = [];
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+
+                const colonIndex = line.indexOf(':');
+                if (colonIndex === -1) continue;
+
+                const speaker = line.substring(0, colonIndex).trim().toUpperCase();
+                const text = line.substring(colonIndex + 1).trim();
+
+                if (speaker && text) {
+                    parsed.push({
+                        speaker: speaker,
+                        text: text,
+                        isUser: speaker === userName
+                    });
+                }
+            }
+
+            return parsed;
+        }
+
+        function displayScript() {
+            const display = document.getElementById('scriptDisplay');
+            display.innerHTML = '';
+
+            script.forEach((line, index) => {
+                const lineDiv = document.createElement('div');
+                lineDiv.className = 'line ' + (line.isUser ? 'user' : 'other');
+                lineDiv.id = 'line-' + index;
+
+                const speakerDiv = document.createElement('div');
+                speakerDiv.className = 'speaker';
+                speakerDiv.textContent = line.speaker;
+
+                const textDiv = document.createElement('div');
+                textDiv.className = 'text';
+                textDiv.textContent = line.text;
+
+                lineDiv.appendChild(speakerDiv);
+                lineDiv.appendChild(textDiv);
+                display.appendChild(lineDiv);
+            });
+        }
+
+        function startReading() {
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            isPaused = false;
+            processNextLine();
+        }
+
+        function processNextLine() {
+            if (isPaused || currentLineIndex >= script.length) {
+                if (currentLineIndex >= script.length) {
+                    updateStatus('waiting', 'Script complete! Great job!');
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('pauseBtn').disabled = true;
+                    document.getElementById('restartBtn').disabled = true;
+                }
+                return;
+            }
+
+            // Highlight current line
+            document.querySelectorAll('.line').forEach(l => l.classList.remove('current'));
+            const currentLineElement = document.getElementById('line-' + currentLineIndex);
+            if (currentLineElement) {
+                currentLineElement.classList.add('current');
+                currentLineElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            updateProgress();
+
+            const currentLine = script[currentLineIndex];
+
+            if (currentLine.isUser) {
+                // User's line - wait for them to speak
+                updateStatus('listening', 'Your turn! Say your line...');
+                startListening();
+            } else {
+                // Other person's line - speak it
+                updateStatus('speaking', currentLine.speaker + ' is speaking...');
+                speakLine(currentLine.text);
+            }
+        }
+
+        function speakLine(text) {
+            // Cancel any ongoing speech
+            synth.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+
+            utterance.onend = () => {
+                currentLineIndex++;
+                setTimeout(() => processNextLine(), 500);
+            };
+
+            utterance.onerror = (event) => {
+                console.error('Speech synthesis error:', event);
+                currentLineIndex++;
+                setTimeout(() => processNextLine(), 500);
+            };
+
+            synth.speak(utterance);
+        }
+
+        function startListening() {
+            if (!recognition) {
+                updateStatus('waiting', 'Speech recognition not available');
+                return;
+            }
+
+            isListening = true;
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error('Failed to start recognition:', e);
+            }
+        }
+
+        function stopListening() {
+            isListening = false;
+            if (recognition) {
+                recognition.stop();
+            }
+        }
+
+        function handleUserSpeech(transcript) {
+            // User has spoken - move to next line
+            stopListening();
+            updateStatus('waiting', 'Good! Moving to next line...');
+
+            currentLineIndex++;
+            setTimeout(() => processNextLine(), 500);
+        }
+
+        function pausePractice() {
+            isPaused = true;
+            synth.cancel();
+            stopListening();
+            updateStatus('waiting', 'Paused');
+            document.getElementById('pauseBtn').classList.add('hidden');
+            document.getElementById('resumeBtn').classList.remove('hidden');
+        }
+
+        function resumePractice() {
+            isPaused = false;
+            document.getElementById('pauseBtn').classList.remove('hidden');
+            document.getElementById('resumeBtn').classList.add('hidden');
+            processNextLine();
+        }
+
+        function restartLine() {
+            synth.cancel();
+            stopListening();
+            processNextLine();
+        }
+
+        function exitPractice() {
+            synth.cancel();
+            stopListening();
+            isPaused = true;
+            currentLineIndex = 0;
+
+            document.getElementById('practiceView').classList.remove('active');
+            document.getElementById('setupView').classList.remove('hidden');
+
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('pauseBtn').classList.remove('hidden');
+            document.getElementById('resumeBtn').classList.add('hidden');
+        }
+
+        function updateStatus(type, text) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+
+            indicator.className = 'status-indicator ' + type;
+            indicator.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+            statusText.textContent = text;
+        }
+
+        function updateProgress() {
+            const progress = (currentLineIndex / script.length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+
+            setTimeout(() => {
+                errorDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Stop everything when page is closed
+        window.addEventListener('beforeunload', () => {
+            synth.cancel();
+            stopListening();
+        });
+    </script>
+</body>
+</html>

@@ -76,6 +76,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .chip.on-green{background:var(--green);color:#fff;border-color:var(--green)}
 .chip.on-amber{background:var(--amber);color:#fff;border-color:var(--amber)}
 .ml-a{margin-left:auto}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .row-count{font-size:.75rem;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:20px;white-space:nowrap}
 
 /* STAT CARDS */
@@ -226,10 +227,10 @@ tbody td.wrap{white-space:normal;max-width:280px}
                 <th style="width:32px"></th>
                 <th class="sortable" data-k="partNumber" data-i="colPN">PN</th>
                 <th class="sortable" data-k="orderType" data-i="colOrderType">Order Type</th>
-                <th class="sortable" data-k="lotCount" data-i="colLots">Lots</th>
-                <th class="sortable" data-k="stepCount" data-i="colSteps">Steps</th>
-                <th class="sortable" data-k="totalArea" data-i="colAreaOv">Area (m²)</th>
-                <th class="sortable" data-k="overdueCount" data-i="colOverdue">Overdue Tasks</th>
+                <th class="sortable num" data-k="lotCount" data-i="colLots">Lots</th>
+                <th class="sortable num" data-k="stepCount" data-i="colSteps">Steps</th>
+                <th class="sortable num" data-k="totalArea" data-i="colAreaOv">Area (m²)</th>
+                <th class="sortable num" data-k="overdueCount" data-i="colOverdue">Overdue Tasks</th>
                 <th class="sortable" data-k="maxEnd" data-i="colEstEnd">Est. End Date</th>
                 <th class="sortable" data-k="exFactory" data-i="colExFactory">Ex-Factory Date</th>
                 <th data-i="colStatus">Status</th>
@@ -272,10 +273,10 @@ tbody td.wrap{white-space:normal;max-width:280px}
               <tr>
                 <th style="width:32px"></th>
                 <th data-i="colProcess">Process Step</th>
-                <th data-i="colTasks">Tasks</th>
-                <th data-i="colArea">Total Area (m²)</th>
-                <th data-i="colOverdueTasks">Overdue Tasks</th>
-                <th data-i="colOverduePct">Overdue %</th>
+                <th class="num" data-i="colTasks">Tasks</th>
+                <th class="num" data-i="colArea">Total Area (m²)</th>
+                <th class="num" data-i="colOverdueTasks">Overdue Tasks</th>
+                <th class="num" data-i="colOverduePct">Overdue %</th>
                 <th data-i="colOrderTypes">Order Types</th>
               </tr>
             </thead>
@@ -469,8 +470,10 @@ function pDate(s) {
 }
 function ymd(d)  { if(!d)return''; return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
 function pad(n)  { return String(n).padStart(2,'0'); }
-function fmtS(d) { if(!d)return'–'; return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}); }
-function fmtDt(d){ if(!d)return'–'; return pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtS(d) { if(!d)return'–'; return pad(d.getDate())+' '+MONTHS[d.getMonth()]+' \''+String(d.getFullYear()).slice(2); }
+function fmtDt(d){ if(!d)return'–'; return pad(d.getDate())+' '+MONTHS[d.getMonth()]+' \''+String(d.getFullYear()).slice(2)+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+function fmtN(n,dec){ if(dec===undefined) return Math.round(n).toLocaleString('en-US'); return n.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
 function dayOf(d){ const r=new Date(d);r.setHours(0,0,0,0);return r; }
 function addDays(d,n){ const r=new Date(d);r.setDate(r.getDate()+n);return r; }
 function weekStart(d){ const r=new Date(d);r.setDate(r.getDate()-r.getDay());r.setHours(0,0,0,0);return r; }
@@ -684,13 +687,13 @@ function renderOverview() {
 
   const urgentCount = list.filter(o=>o.urgency!=='none').length;
   document.getElementById('ov-stats').innerHTML = `
-    <div class="stat s-blue"><div class="stat-lbl">${t('statTotal')}</div><div class="stat-val">${list.length}</div><div class="stat-sub">${new Set(list.map(o=>o.partNumber)).size} ${t('uniqueParts')}</div></div>
-    <div class="stat s-red"><div class="stat-lbl">${t('statOverdue')}</div><div class="stat-val">${overdue}</div><div class="stat-sub">${list.length?Math.round(overdue/list.length*100):0}% ${t('ofTotal')}</div></div>
-    <div class="stat s-green"><div class="stat-lbl">${t('statOk')}</div><div class="stat-val">${ontrack}</div><div class="stat-sub">${list.length?Math.round(ontrack/list.length*100):0}% ${t('ofTotal')}</div></div>
+    <div class="stat s-blue"><div class="stat-lbl">${t('statTotal')}</div><div class="stat-val">${fmtN(list.length)}</div><div class="stat-sub">${fmtN(new Set(list.map(o=>o.partNumber)).size)} ${t('uniqueParts')}</div></div>
+    <div class="stat s-red"><div class="stat-lbl">${t('statOverdue')}</div><div class="stat-val">${fmtN(overdue)}</div><div class="stat-sub">${list.length?Math.round(overdue/list.length*100):0}% ${t('ofTotal')}</div></div>
+    <div class="stat s-green"><div class="stat-lbl">${t('statOk')}</div><div class="stat-val">${fmtN(ontrack)}</div><div class="stat-sub">${list.length?Math.round(ontrack/list.length*100):0}% ${t('ofTotal')}</div></div>
     <div class="stat s-amber" style="cursor:pointer" onclick="document.querySelector('[data-s=urgent]').click()" title="Click to filter urgent orders">
       <div class="stat-lbl">${t('statUrgent')}</div>
-      <div class="stat-val">${urgentCount}</div>
-      <div class="stat-sub">${list.filter(o=>o.urgency==='all').length} ${t('statAllUrgent')}</div>
+      <div class="stat-val">${fmtN(urgentCount)}</div>
+      <div class="stat-sub">${fmtN(list.filter(o=>o.urgency==='all').length)} ${t('statAllUrgent')}</div>
     </div>
   `;
   document.getElementById('ov-cnt').textContent = list.length+' orders';
@@ -712,10 +715,10 @@ function renderOverview() {
           ${o.urgency==='some' ? `<span class="badge b-urgent-partial" style="margin-left:6px" title="${o.urgentLots} of ${o.lotCount} lots urgent">⚡ ${o.urgentLots}/${o.lotCount} ${t('urgent')}</span>` : ''}
         </td>
         <td><span class="badge b-neutral">${esc(o.orderType)}</span></td>
-        <td><b>${o.lotCount}</b></td>
-        <td>${o.stepCount}</td>
-        <td>${o.totalArea>0 ? o.totalArea.toFixed(2) : '–'}</td>
-        <td ${late?'style="color:var(--red);font-weight:700"':''}>${o.overdueCount||0}</td>
+        <td class="num"><b>${fmtN(o.lotCount)}</b></td>
+        <td class="num">${fmtN(o.stepCount)}</td>
+        <td class="num">${o.totalArea>0 ? fmtN(o.totalArea,2) : '–'}</td>
+        <td class="num" ${late?'style="color:var(--red);font-weight:700"':''}>${fmtN(o.overdueCount||0)}</td>
         <td>${fmtDt(o.maxEnd)}</td>
         <td>${fmtS(o.exFactory)}</td>
         <td>${badge}</td>
@@ -857,10 +860,10 @@ function renderBacklog() {
   const totOverdue=rows.filter(r=>r._late).length;
 
   document.getElementById('bl-stats').innerHTML=`
-    <div class="stat s-blue"><div class="stat-lbl">${t('statTasks')}</div><div class="stat-val">${totTasks.toLocaleString()}</div><div class="stat-sub">${fromStr} → ${toStr}</div></div>
-    <div class="stat s-amber"><div class="stat-lbl">${t('statArea')}</div><div class="stat-val">${totArea.toFixed(1)}</div><div class="stat-sub">&nbsp;</div></div>
-    <div class="stat s-red"><div class="stat-lbl">${t('statOverdueTasks')}</div><div class="stat-val">${totOverdue.toLocaleString()}</div><div class="stat-sub">${totTasks?Math.round(totOverdue/totTasks*100):0}% ${t('ofTotal')}</div></div>
-    <div class="stat s-green"><div class="stat-lbl">${t('statActiveProc')}</div><div class="stat-val">${procs.length}</div><div class="stat-sub">&nbsp;</div></div>
+    <div class="stat s-blue"><div class="stat-lbl">${t('statTasks')}</div><div class="stat-val">${fmtN(totTasks)}</div><div class="stat-sub">${fromStr} → ${toStr}</div></div>
+    <div class="stat s-amber"><div class="stat-lbl">${t('statArea')}</div><div class="stat-val">${fmtN(totArea,1)}</div><div class="stat-sub">&nbsp;</div></div>
+    <div class="stat s-red"><div class="stat-lbl">${t('statOverdueTasks')}</div><div class="stat-val">${fmtN(totOverdue)}</div><div class="stat-sub">${totTasks?Math.round(totOverdue/totTasks*100):0}% ${t('ofTotal')}</div></div>
+    <div class="stat s-green"><div class="stat-lbl">${t('statActiveProc')}</div><div class="stat-val">${fmtN(procs.length)}</div><div class="stat-sub">&nbsp;</div></div>
   `;
   document.getElementById('bl-cnt').textContent=procs.length+' processes';
 
@@ -874,10 +877,10 @@ function renderBacklog() {
       <tr>
         <td><button class="xbtn" onclick="toggleRow('${id}',this)">+</button></td>
         <td style="font-weight:700">${esc(p.name)}</td>
-        <td>${p.count.toLocaleString()}</td>
-        <td>${p.area.toFixed(2)}</td>
-        <td ${red?'style="color:var(--red);font-weight:700"':''}>${p.overdue}</td>
-        <td ${red?'style="color:var(--red);font-weight:700"':''}>${pct}%</td>
+        <td class="num">${fmtN(p.count)}</td>
+        <td class="num">${fmtN(p.area,2)}</td>
+        <td class="num" ${red?'style="color:var(--red);font-weight:700"':''}>${fmtN(p.overdue)}</td>
+        <td class="num" ${red?'style="color:var(--red);font-weight:700"':''}>${pct}%</td>
         <td class="wrap">${p.types.map(ty=>`<span class="badge b-neutral" style="margin:1px">${esc(ty)}</span>`).join('')}</td>
       </tr>
       <tr class="xrow" id="${id}">
@@ -888,7 +891,7 @@ function renderBacklog() {
               <thead><tr>
                 <th>${t('colPN')}</th><th>${t('colOrderType')}</th><th>Station</th>
                 <th>Start</th><th>End</th><th>Deadline</th>
-                <th>${t('colArea')}</th><th>${t('colStatus')}</th><th>Backlog</th>
+                <th class="num">${t('colArea')}</th><th>${t('colStatus')}</th><th>Backlog</th>
               </tr></thead>
               <tbody>
                 ${p.tasks.slice(0,300).map(r=>`
@@ -897,7 +900,7 @@ function renderBacklog() {
                     <td><span class="badge b-neutral">${esc(r['order_type']||'')}</span></td>
                     <td>${esc(r['Station']||'')}</td>
                     <td>${fmtDt(r._start)}</td><td>${fmtDt(r._end)}</td><td>${fmtDt(r._dead)}</td>
-                    <td>${r._area.toFixed(3)}</td>
+                    <td class="num">${fmtN(r._area,3)}</td>
                     <td>${r._late?`<span class="badge b-overdue">${t('badgeLate')}</span>`:`<span class="badge b-ok">${t('badgeGood')}</span>`}</td>
                     <td style="font-size:.72rem;color:var(--muted)">${esc(r['in backlog']||'')}</td>
                   </tr>`).join('')}
@@ -980,13 +983,13 @@ function renderProduction(){
       const ratio=v/p.max;
       const bg=v>0?`rgba(21,101,192,${(ratio*0.55).toFixed(2)})`:'transparent';
       const color=ratio>0.6?'#fff':'inherit';
-      return `<td style="background:${bg};color:${color}">${v>0?v.toFixed(2):''}</td>`;
+      return `<td style="background:${bg};color:${color}">${v>0?fmtN(v,2):''}</td>`;
     }).join('')}
-    <td class="t-total">${p.total.toFixed(2)}</td></tr>`;
+    <td class="t-total">${fmtN(p.total,2)}</td></tr>`;
   }
   html+=`<tr class="r-total"><td class="proc-cell">TOTAL</td>
-    ${colTotals.map(v=>`<td>${v>0?v.toFixed(2):''}</td>`).join('')}
-    <td class="t-total">${grandTotal.toFixed(2)}</td>
+    ${colTotals.map(v=>`<td>${v>0?fmtN(v,2):''}</td>`).join('')}
+    <td class="t-total">${fmtN(grandTotal,2)}</td>
   </tr></tbody>`;
   document.getElementById('pr-matrix').innerHTML=html;
 }

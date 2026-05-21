@@ -114,6 +114,8 @@ tbody td.wrap{white-space:normal;max-width:280px}
 .b-warn{background:var(--amber-lt);color:var(--amber)}
 .b-neutral{background:#eceff1;color:#546e7a}
 .b-blue{background:var(--blue-lt);color:var(--blue)}
+.b-urgent{background:#fce4ec;color:#c62828;border:1px solid #ef9a9a}
+.b-urgent-partial{background:var(--amber-lt);color:var(--amber);border:1px solid #ffcc80}
 
 /* EXPAND ROWS */
 .xbtn{background:none;border:1.5px solid var(--border);border-radius:5px;padding:2px 8px;cursor:pointer;font-size:.72rem;font-weight:700;color:var(--muted);transition:all .15s;line-height:1.4}
@@ -361,6 +363,7 @@ const TRANS = {
     routeLabel:'Production Route', lotsLabel:'Lots',
     lotId:'Lot ID', currentStep:'Current Step', estEnd:'Est. Completion', lotStatus:'Status',
     badgeOverdue:'⚠ Overdue', badgeOk:'✓ On Track', badgeLate:'Late', badgeGood:'OK',
+    allUrgent:'ALL URGENT', urgent:'Urgent',
     uniqueParts:'unique part numbers', ofTotal:'of total',
   },
   zh: {
@@ -389,6 +392,7 @@ const TRANS = {
     routeLabel:'生产路线', lotsLabel:'批次',
     lotId:'批次编号', currentStep:'当前工序', estEnd:'预计完成时间', lotStatus:'状态',
     badgeOverdue:'⚠ 逾期', badgeOk:'✓ 正常', badgeLate:'逾期', badgeGood:'正常',
+    allUrgent:'全部紧急', urgent:'紧急',
     uniqueParts:'个唯一料号', ofTotal:'占总数',
   }
 };
@@ -492,7 +496,7 @@ async function loadXlsx(file) {
       const area  = parseFloat(r['lot area'])||0;
       const lot   = lotId(r['Task']);
       return { ...r, _start:start, _end:end, _dead:dead, _exFac:exFac, _area:area,
-               _lot:lot, _late:!!(start&&dead&&dead<start) };
+               _lot:lot, _late:!!(end&&dead&&end>dead) };
     });
 
     showLoad('Building orders…'); await tick();
@@ -540,8 +544,20 @@ function buildOrders() {
     const lots      = new Set(o.tasks.map(t=>t._lot).filter(Boolean));
     const steps     = new Set(o.tasks.map(t=>t['process_name']).filter(Boolean));
     const overdueCount = o.tasks.filter(t=>t._late).length;
+
+    // Urgency: a lot is urgent if any of its tasks has State = 'Urgent'
+    const lotUrgent = new Map();
+    for (const t of o.tasks) {
+      const lid = t._lot;
+      if (!lotUrgent.has(lid)) lotUrgent.set(lid, false);
+      if ((t['State']||'') === 'Urgent') lotUrgent.set(lid, true);
+    }
+    const urgentLots = [...lotUrgent.values()].filter(Boolean).length;
+    const urgency = urgentLots === lots.size && lots.size > 0 ? 'all'
+                  : urgentLots > 0 ? 'some' : 'none';
+
     return { ...o, maxEnd, lotCount:lots.size, stepCount:steps.size,
-             overdueCount, isOverdue: overdueCount>0 };
+             overdueCount, isOverdue: overdueCount>0, urgency, urgentLots };
   });
 }
 
@@ -664,7 +680,11 @@ function renderOverview() {
     tbody.insertAdjacentHTML('beforeend',`
       <tr>
         <td><button class="xbtn" onclick="toggleRow('${id}',this)">+</button></td>
-        <td style="font-weight:700">${esc(o.partNumber)}</td>
+        <td style="font-weight:700;white-space:nowrap">
+          ${esc(o.partNumber)}
+          ${o.urgency==='all'  ? `<span class="badge b-urgent" style="margin-left:6px" title="All ${o.lotCount} lots urgent">🚨 ${t('allUrgent')}</span>` : ''}
+          ${o.urgency==='some' ? `<span class="badge b-urgent-partial" style="margin-left:6px" title="${o.urgentLots} of ${o.lotCount} lots urgent">⚡ ${o.urgentLots}/${o.lotCount} ${t('urgent')}</span>` : ''}
+        </td>
         <td><span class="badge b-neutral">${esc(o.orderType)}</span></td>
         <td>${fmtS(o.exFactory)}</td>
         <td><b>${o.lotCount}</b></td>
@@ -796,7 +816,7 @@ function renderBacklog() {
   // Sort by PCB order, then unknown processes alphabetically at end
   let procs=[...map.entries()].map(([name,tasks])=>({
     name, tasks, count:tasks.length,
-    area: tasks.reduce((s,t2)=>s+t2._area,0),
+    area: lotAreaSum(tasks),
     overdue: tasks.filter(t2=>t2._late).length,
     types: [...new Set(tasks.map(t2=>t2['order_type']).filter(Boolean))],
     rank: pcbRank(name),
@@ -806,7 +826,7 @@ function renderBacklog() {
   if(q) procs=procs.filter(p=>p.name.toLowerCase().includes(q));
 
   const totTasks  =rows.length;
-  const totArea   =rows.reduce((s,r)=>s+r._area,0);
+  const totArea   =lotAreaSum(rows);
   const totOverdue=rows.filter(r=>r._late).length;
 
   document.getElementById('bl-stats').innerHTML=`
@@ -947,6 +967,13 @@ function renderProduction(){
 // ═══════════════════════════════════════════════════════
 //  UTILS
 // ═══════════════════════════════════════════════════════
+// Sum lot area once per unique lot ID (avoids multiplying area by step count)
+function lotAreaSum(rows) {
+  const seen = new Map();
+  for (const r of rows) { if (!seen.has(r._lot)) seen.set(r._lot, r._area); }
+  return [...seen.values()].reduce((s,v)=>s+v, 0);
+}
+
 let _n=0;
 function uid(){ return 'r'+(++_n); }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }

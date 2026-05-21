@@ -197,6 +197,7 @@ tbody td.wrap{white-space:normal;max-width:280px}
     <button class="tab-btn active" onclick="goTab('overview',this)" data-i="tab1">📋 Overview</button>
     <button class="tab-btn" onclick="goTab('backlog',this)" data-i="tab2">⚙️ Process Backlog</button>
     <button class="tab-btn" onclick="goTab('production',this)" data-i="tab3">📊 Production Area</button>
+    <button class="tab-btn" onclick="goTab('target',this)">🎯 Target vs Scheduled</button>
   </nav>
 
   <!-- PANE 1: OVERVIEW -->
@@ -311,9 +312,91 @@ tbody td.wrap{white-space:normal;max-width:280px}
       </div>
     </div>
   </div>
+  <!-- PANE 4: TARGET VS SCHEDULED -->
+  <div class="pane hidden" id="pane-target">
+    <div class="page">
+      <div class="toolbar">
+        <label>Date</label>
+        <input type="date" class="inp" id="tg-date" oninput="renderTarget()">
+        <div class="vsep"></div>
+        <label>Process</label>
+        <input class="inp" id="tg-q" placeholder="Filter…" oninput="renderTarget()" style="min-width:130px">
+        <span class="row-count ml-a" id="tg-cnt">—</span>
+      </div>
+      <div class="stat-row" id="tg-stats"></div>
+      <div class="tbl-wrap">
+        <div class="tbl-scr">
+          <table>
+            <thead>
+              <tr>
+                <th>Process Step</th>
+                <th class="num">Daily Target (m²)</th>
+                <th class="num">Scheduled Area (m²)</th>
+                <th class="num">Difference (m²)</th>
+                <th class="num">vs Target %</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tg-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div style="margin-top:18px">
+        <div class="tbl-wrap">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+            <span style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Daily Breakdown — Scheduled vs Target</span>
+            <div class="chip-group" style="margin-left:auto">
+              <button class="chip on" id="tg-toggle-num" onclick="tgToggle('num')">Number</button>
+              <button class="chip" id="tg-toggle-pct" onclick="tgToggle('pct')">%</button>
+            </div>
+          </div>
+          <div class="tbl-scr">
+            <table>
+              <thead id="tg-daily-head"></thead>
+              <tbody id="tg-daily-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
+// ═══════════════════════════════════════════════════════
+//  PROCESS DAILY TARGETS (m²)
+// ═══════════════════════════════════════════════════════
+const PROCESS_TARGETS = {
+  // Inner layer dry film — target applies to last step
+  '内层干菲林': 8000,
+  // Lamination
+  '压合': 7300,
+  // Drilling
+  '钻孔': 15800,
+  // Panel plating
+  '板电': 16500,
+  // Outer layer dry film — target applies to last step (外层显影)
+  '外层显影': 16786,
+  // Pattern plating
+  '图电': 14500,
+  // Alkaline etch
+  '碱性蚀刻': 14500,
+  // Solder mask — target applies to last step (绿油烤板)
+  '绿油烤板': 16786,
+  // Legend
+  '白字': 7000,
+  // Immersion gold — target applies to last step (沉金后处理)
+  '沉金后处理': 4800,
+  // HASL
+  '无铅喷锡': 7000,
+  // Routing — main routing step
+  '锣板': 16783,
+  // E-Test
+  '电测': 16786,
+  // Immersion tin — target applies to last step (沉锡线)
+  '沉锡线': 6300,
+};
+
 // ═══════════════════════════════════════════════════════
 //  PCB PRODUCTION PROCESS ORDER
 // ═══════════════════════════════════════════════════════
@@ -530,6 +613,11 @@ async function loadXlsx(file) {
     setDI('bl-from',ymd(dMin)); setDI('bl-to',ymd(defEnd));
     setDI('pr-from',ymd(dMin)); setDI('pr-to',ymd(defEnd));
 
+    // Auto-detect date from filename e.g. 5_22_2025.xlsx → use next day
+    const fnDate = parseDateFromFilename(file.name);
+    const tgDate = fnDate ? ymd(addDays(fnDate, 1)) : ymd(addDays(new Date(), 1));
+    setDI('tg-date', tgDate);
+
     document.getElementById('hdrFile').textContent = '— '+file.name;
     const procCount = new Set(G.rows.map(r=>r['process_name'])).size;
     document.getElementById('hdrMeta').textContent =
@@ -587,7 +675,7 @@ function buildOrders() {
 // ═══════════════════════════════════════════════════════
 //  TABS
 // ═══════════════════════════════════════════════════════
-const TABS = ['overview','backlog','production'];
+const TABS = ['overview','backlog','production','target'];
 function goTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TABS[i]===name));
   document.querySelectorAll('.pane').forEach(p=>{p.classList.add('hidden');p.classList.remove('active');});
@@ -595,6 +683,7 @@ function goTab(name, btn) {
   pane.classList.remove('hidden'); pane.classList.add('active');
   if(name==='backlog')    renderBacklog();
   if(name==='production') renderProduction();
+  if(name==='target')     renderTarget();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -992,6 +1081,161 @@ function renderProduction(){
     <td class="t-total">${fmtN(grandTotal,2)}</td>
   </tr></tbody>`;
   document.getElementById('pr-matrix').innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════════
+//  TARGET VS SCHEDULED
+// ═══════════════════════════════════════════════════════
+
+// Parse M_DD_YYYY or YYYY-MM-DD from filename, return Date or null
+function parseDateFromFilename(name) {
+  // M_DD_YYYY e.g. 5_22_2025
+  const m1 = name.match(/(\d{1,2})_(\d{2})_(\d{4})/);
+  if (m1) return new Date(parseInt(m1[3]), parseInt(m1[1])-1, parseInt(m1[2]));
+  // YYYY-MM-DD fallback
+  const m2 = name.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m2) return new Date(parseInt(m2[1]), parseInt(m2[2])-1, parseInt(m2[3]));
+  return null;
+}
+
+function renderTarget() {
+  const dateStr = document.getElementById('tg-date').value;
+  const q       = (document.getElementById('tg-q').value||'').trim().toLowerCase();
+  if (!dateStr) return;
+
+  const bKey = d => ymd(d);
+
+  // ── SINGLE DAY TABLE ──────────────────────────────────
+  const dayFrom = new Date(dateStr+'T00:00:00');
+  const dayTo   = new Date(dateStr+'T23:59:59');
+  const dayRows = G.rows.filter(r=>r._start&&r._start>=dayFrom&&r._start<=dayTo);
+  const dayMap  = new Map();
+  for (const r of dayRows) {
+    const p = r['process_name']||'Unknown';
+    dayMap.set(p, (dayMap.get(p)||0) + r._area);
+  }
+
+  // ── 2-WEEK HEATMAP ────────────────────────────────────
+  const hmStart  = new Date(dateStr+'T00:00:00');
+  const hmEnd    = addDays(hmStart, 13);
+  const buckets  = [];
+  for (let d=new Date(hmStart); d<=hmEnd; d=addDays(d,1)) buckets.push(new Date(d));
+  const hmRows   = G.rows.filter(r=>r._start&&r._start>=hmStart&&r._start<=hmEnd);
+  const hmProcMap = new Map();
+  for (const r of hmRows) {
+    const p = r['process_name']||'Unknown';
+    const k = bKey(r._start);
+    if (!hmProcMap.has(p)) hmProcMap.set(p, new Map());
+    hmProcMap.get(p).set(k, (hmProcMap.get(p).get(k)||0) + r._area);
+  }
+
+  // Build process list — only processes with target > 0
+  let procs = Object.entries(PROCESS_TARGETS)
+    .filter(([,tgt]) => tgt > 0)
+    .map(([name, target]) => {
+      const sched = dayMap.get(name)||0;
+      const diff  = sched - target;
+      const pct   = Math.round(sched / target * 100);
+      const bm    = hmProcMap.get(name) || new Map();
+      return { name, target, sched, diff, pct, bm, rank: pcbRank(name) };
+    })
+    .sort((a,b) => a.rank!==b.rank ? a.rank-b.rank : a.name.localeCompare(b.name));
+
+  if (q) procs = procs.filter(p=>p.name.toLowerCase().includes(q));
+  document.getElementById('tg-cnt').textContent = procs.length + ' processes';
+
+  // Stat cards
+  const totalSched = procs.reduce((s,p)=>s+p.sched, 0);
+  const totalTgt   = procs.reduce((s,p)=>s+p.target, 0);
+  const onTarget   = procs.filter(p=>p.pct >= 90).length;
+  const farBelow   = procs.filter(p=>p.pct < 50).length;
+
+  document.getElementById('tg-stats').innerHTML=`
+    <div class="stat s-blue"><div class="stat-lbl">Date</div><div class="stat-val" style="font-size:1.2rem">${dateStr}</div><div class="stat-sub">${dayRows.length} tasks scheduled</div></div>
+    <div class="stat s-green"><div class="stat-lbl">Total Scheduled</div><div class="stat-val">${fmtN(totalSched,0)}</div><div class="stat-sub">vs target ${fmtN(totalTgt,0)}</div></div>
+    <div class="stat s-green"><div class="stat-lbl">Meeting Target (≥90%)</div><div class="stat-val">${onTarget}</div><div class="stat-sub">of ${procs.length} processes</div></div>
+    <div class="stat s-red"><div class="stat-lbl">Below 50% Target</div><div class="stat-val">${farBelow}</div><div class="stat-sub">processes need attention</div></div>
+  `;
+
+  // Summary table (single day)
+  const tbody = document.getElementById('tg-body');
+  tbody.innerHTML = '';
+  for (const p of procs) {
+    let badge, rowBg = '';
+    if (p.sched === 0)    { badge = '<span class="badge b-neutral">No Data</span>'; }
+    else if (p.pct >= 100){ badge = `<span class="badge b-ok">✓ On Target</span>`; rowBg = 'background:rgba(46,125,50,0.06)'; }
+    else if (p.pct >= 90) { badge = `<span class="badge b-ok">✓ Near Target</span>`; rowBg = 'background:rgba(46,125,50,0.06)'; }
+    else if (p.pct >= 50) { badge = `<span class="badge b-warn">⚠ Below Target</span>`; rowBg = 'background:rgba(198,40,40,0.08)'; }
+    else                  { badge = `<span class="badge b-overdue">✗ Far Below</span>`; rowBg = 'background:rgba(198,40,40,0.15)'; }
+    const diffColor = p.sched>0 && p.diff<0 ? 'color:var(--red);font-weight:700' : p.diff>0 ? 'color:var(--green);font-weight:700' : '';
+    tbody.insertAdjacentHTML('beforeend',`
+      <tr style="${rowBg}">
+        <td style="font-weight:700">${esc(p.name)}</td>
+        <td class="num">${fmtN(p.target,0)}</td>
+        <td class="num">${p.sched>0 ? fmtN(p.sched,0) : '<span style="color:var(--muted)">—</span>'}</td>
+        <td class="num" ${diffColor?`style="${diffColor}"`:''}>${p.sched>0?(p.diff>=0?'+':'')+fmtN(p.diff,0):'–'}</td>
+        <td class="num" ${p.sched>0&&p.pct<90?'style="font-weight:700"':''}>${p.sched>0?p.pct+'%':'–'}</td>
+        <td>${badge}</td>
+      </tr>
+    `);
+  }
+
+  // 2-week heatmap — store data for toggle
+  G.tgProcs   = procs;
+  G.tgBuckets = buckets;
+  G.tgBkey    = bKey;
+  G.tgMode    = G.tgMode || 'num'; // preserve mode across re-renders
+  renderTgHeatmap();
+}
+
+function renderTgHeatmap() {
+  const procs   = G.tgProcs;
+  const buckets = G.tgBuckets;
+  const bKey    = G.tgBkey;
+  const showPct = G.tgMode === 'pct';
+  if (!procs || !buckets) return;
+
+  // Update toggle button labels
+  document.getElementById('tg-toggle-num').classList.toggle('on', !showPct);
+  document.getElementById('tg-toggle-pct').classList.toggle('on',  showPct);
+
+  // Header: Process | Target | Day1 | Day2 ...
+  let headHtml = '<tr>'
+    + '<th style="position:sticky;left:0;background:#f8fafc;min-width:160px">Process</th>'
+    + '<th style="position:sticky;left:160px;background:#e3f2fd;color:var(--blue);min-width:80px">Target</th>';
+  for (const b of buckets)
+    headHtml += `<th>${b.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</th>`;
+  headHtml += '</tr>';
+  document.getElementById('tg-daily-head').innerHTML = headHtml;
+
+  let bodyHtml = '';
+  for (const p of procs) {
+    bodyHtml += `<tr>`
+      + `<td style="position:sticky;left:0;background:#fff;font-weight:700;text-align:left;border-right:1px solid var(--border)">${esc(p.name)}</td>`
+      + `<td style="position:sticky;left:160px;background:#e3f2fd;color:var(--blue);text-align:right;font-weight:700;border-right:2px solid var(--border)">${fmtN(p.target,0)}</td>`;
+    for (const b of buckets) {
+      const k = bKey(b);
+      const v = p.bm.get(k)||0;
+      const ratio = p.target > 0 ? v/p.target : 0;
+      let bg = 'transparent', color = 'inherit';
+      if (v > 0) {
+        if (ratio >= 1.0)       { bg = 'rgba(46,125,50,0.75)';  color = '#fff'; }
+        else if (ratio >= 0.75) { bg = 'rgba(198,40,40,0.28)';  color = '#7f1010'; }
+        else if (ratio >= 0.50) { bg = 'rgba(198,40,40,0.55)';  color = '#fff'; }
+        else                    { bg = 'rgba(198,40,40,0.85)';  color = '#fff'; }
+      }
+      const display = v > 0 ? (showPct ? Math.round(ratio*100)+'%' : fmtN(v,0)) : '';
+      const title = `title="${fmtN(v,0)} / ${fmtN(p.target,0)} (${Math.round(ratio*100)}%)"`;
+      bodyHtml += `<td style="background:${bg};color:${color};text-align:right" ${title}>${display}</td>`;
+    }
+    bodyHtml += '</tr>';
+  }
+  document.getElementById('tg-daily-body').innerHTML = bodyHtml;
+}
+
+function tgToggle(mode) {
+  G.tgMode = mode;
+  renderTgHeatmap();
 }
 
 // ═══════════════════════════════════════════════════════

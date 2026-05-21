@@ -1,634 +1,905 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Script Practice App</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Production Plan Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f3f7;
+  --card:#fff;
+  --hdr:#0c1e32;
+  --blue:#1565c0;
+  --blue-lt:#e3f2fd;
+  --red:#c62828;
+  --red-lt:#ffebee;
+  --amber:#e65100;
+  --amber-lt:#fff3e0;
+  --green:#2e7d32;
+  --green-lt:#e8f5e9;
+  --border:#e0e5ec;
+  --text:#1a2332;
+  --muted:#546e7a;
+  --shadow:0 1px 4px rgba(0,0,0,.1);
+  --shadow-md:0 4px 14px rgba(0,0,0,.12);
+  --r:8px
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+/* ── LOADING ── */
+#loadingOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;color:#fff}
+#loadingOverlay.show{display:flex}
+.spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{font-size:.9rem;opacity:.85}
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
+/* ── UPLOAD SCREEN ── */
+#uploadScreen{position:fixed;inset:0;background:linear-gradient(135deg,#0c1e32 0%,#1565c0 100%);display:flex;align-items:center;justify-content:center;z-index:200}
+.upload-box{background:#fff;border-radius:16px;padding:48px 52px;max-width:480px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.35)}
+.upload-box h2{font-size:1.5rem;font-weight:800;color:var(--hdr);margin-bottom:8px}
+.upload-box p{color:var(--muted);font-size:.9rem;line-height:1.6;margin-bottom:28px}
+.drop-zone{border:2px dashed #bcd0ea;border-radius:12px;padding:36px 20px;cursor:pointer;transition:all .2s}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--blue);background:var(--blue-lt)}
+.drop-zone .dz-icon{font-size:2.5rem;margin-bottom:8px}
+.drop-zone p{font-size:.88rem;color:var(--muted);margin-top:6px}
+.drop-zone strong{color:var(--blue)}
+.upload-features{margin-top:22px;text-align:left}
+.upload-features li{font-size:.8rem;color:var(--muted);padding:3px 0 3px 22px;list-style:none;position:relative}
+.upload-features li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:700}
 
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
+/* ── HEADER ── */
+.hdr{background:var(--hdr);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:54px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.hdr-left{display:flex;align-items:center;gap:10px}
+.hdr-left h1{font-size:.95rem;font-weight:700;letter-spacing:.02em}
+.hdr-left span{font-size:.75rem;opacity:.45;padding-left:4px}
+.hdr-right{display:flex;align-items:center;gap:12px;font-size:.78rem}
+.hdr-meta{opacity:.55}
+.btn-ghost{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);color:#fff;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:.78rem;transition:background .2s}
+.btn-ghost:hover{background:rgba(255,255,255,.24)}
 
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
+/* ── TAB BAR ── */
+.tab-bar{background:#fff;border-bottom:2px solid var(--border);display:flex;padding:0 28px;box-shadow:var(--shadow)}
+.tab-btn{padding:13px 18px;border:none;background:none;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .2s,border-color .2s;white-space:nowrap}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-btn:hover:not(.active){color:var(--text)}
 
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
+/* ── LAYOUT ── */
+#app{display:none}
+.pane{display:none}
+.pane.active{display:block}
+.page{padding:22px 28px;max-width:1700px;margin:0 auto}
 
-        .content {
-            padding: 30px;
-        }
+/* ── TOOLBAR ── */
+.toolbar{background:#fff;border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:var(--shadow);margin-bottom:18px}
+.toolbar label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);white-space:nowrap}
+.inp{padding:7px 11px;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;color:var(--text);background:#fff;min-width:140px}
+.inp:focus{outline:none;border-color:var(--blue)}
+.vsep{width:1px;height:22px;background:var(--border);flex-shrink:0}
+.chip-group{display:flex;gap:5px;flex-wrap:wrap}
+.chip{padding:4px 11px;border:1.5px solid var(--border);border-radius:20px;font-size:.72rem;font-weight:700;cursor:pointer;background:#fff;color:var(--muted);transition:all .15s;white-space:nowrap}
+.chip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip.on-red{background:var(--red);color:#fff;border-color:var(--red)}
+.chip.on-green{background:var(--green);color:#fff;border-color:var(--green)}
+.ml-a{margin-left:auto}
+.row-count{font-size:.75rem;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:20px;white-space:nowrap}
 
-        .section {
-            margin-bottom: 30px;
-        }
+/* ── STAT CARDS ── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.stat{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);border-left:4px solid var(--border)}
+.stat.s-blue{border-left-color:var(--blue)}
+.stat.s-red{border-left-color:var(--red)}
+.stat.s-green{border-left-color:var(--green)}
+.stat.s-amber{border-left-color:var(--amber)}
+.stat-lbl{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px}
+.stat-val{font-size:1.75rem;font-weight:800;line-height:1}
+.stat.s-red .stat-val{color:var(--red)}
+.stat.s-green .stat-val{color:var(--green)}
+.stat.s-blue .stat-val{color:var(--blue)}
+.stat-sub{font-size:.72rem;color:var(--muted);margin-top:3px}
 
-        .section h2 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.5em;
-        }
+/* ── TABLE WRAPPER ── */
+.tbl-wrap{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}
+.tbl-scr{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead th{padding:9px 13px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:#f8fafc;border-bottom:2px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+thead th:hover{background:#f0f4f9}
+thead th.asc::after{content:' ↑'}
+thead th.dsc::after{content:' ↓'}
+tbody tr{border-bottom:1px solid #f0f4f8;transition:background .1s}
+tbody tr:hover{background:#f6f9ff}
+tbody td{padding:9px 13px;color:var(--text);white-space:nowrap;vertical-align:middle}
+tbody td.wrap{white-space:normal;max-width:260px}
 
-        .input-group {
-            margin-bottom: 15px;
-        }
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.b-overdue{background:var(--red-lt);color:var(--red)}
+.b-ok{background:var(--green-lt);color:var(--green)}
+.b-warn{background:var(--amber-lt);color:var(--amber)}
+.b-neutral{background:#eceff1;color:#546e7a}
+.b-blue{background:var(--blue-lt);color:var(--blue)}
 
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-            font-weight: 600;
-        }
+/* ── EXPAND ROWS ── */
+.xbtn{background:none;border:1.5px solid var(--border);border-radius:5px;padding:2px 8px;cursor:pointer;font-size:.72rem;font-weight:700;color:var(--muted);transition:all .15s;line-height:1.4}
+.xbtn:hover{border-color:var(--blue);color:var(--blue)}
+.xrow{display:none}
+.xrow.open{display:table-row}
+.xcell{padding:0!important;border-bottom:2px solid var(--blue-lt)!important}
+.xinner{padding:14px 18px 14px 36px;background:#fafcff}
+.xinner h4{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px}
 
-        input[type="text"], textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
+/* ── FLOW GRID ── */
+.flow-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.fstep{border:1px solid var(--border);border-radius:6px;padding:10px 12px;background:#fff;font-size:.78rem}
+.fstep.f-late{border-color:var(--red);background:var(--red-lt)}
+.fstep.f-warn{border-color:#ffb74d;background:var(--amber-lt)}
+.fstep.f-ok{border-color:#a5d6a7;background:var(--green-lt)}
+.fstep-name{font-weight:700;margin-bottom:4px;font-size:.82rem}
+.fstep-detail{color:var(--muted);font-size:.72rem;line-height:1.6}
 
-        input[type="text"]:focus, textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
+/* ── MATRIX ── */
+.matrix-outer{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);overflow:auto;max-height:75vh}
+.mtbl{border-collapse:collapse;font-size:.78rem;width:max-content;min-width:100%}
+.mtbl th{padding:7px 11px;background:#f8fafc;border:1px solid var(--border);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);white-space:nowrap}
+.mtbl th.sticky-col{position:sticky;left:0;z-index:2;min-width:155px;text-align:left;background:#f0f4f8}
+.mtbl th.sticky-row{position:sticky;top:0;z-index:1}
+.mtbl th.sticky-both{position:sticky;left:0;top:0;z-index:3;background:#f0f4f8}
+.mtbl td{padding:6px 11px;border:1px solid #f0f4f8;text-align:right;white-space:nowrap;position:relative;min-width:72px}
+.mtbl td.proc-cell{position:sticky;left:0;background:#fff;font-weight:700;text-align:left;border-right:2px solid var(--border);z-index:1}
+.mtbl td.t-total{font-weight:700;background:#e8f5e9;color:var(--green)}
+.mtbl tr.r-total td{background:#f0f4f8;font-weight:700}
+.mtbl tr.r-total td.proc-cell{background:#e8eef4}
+.heat{position:absolute;inset:0;pointer-events:none}
 
-        textarea {
-            min-height: 250px;
-            font-family: 'Courier New', monospace;
-            resize: vertical;
-        }
-
-        .help-text {
-            font-size: 0.9em;
-            color: #888;
-            margin-top: 5px;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            padding: 12px 25px;
-            font-size: 1em;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #555;
-        }
-
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
-
-        .btn-danger {
-            background: #ff4757;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #ee5a6f;
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .practice-view {
-            display: none;
-        }
-
-        .practice-view.active {
-            display: block;
-        }
-
-        .script-display {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            min-height: 150px;
-        }
-
-        .line {
-            margin: 15px 0;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 1.1em;
-        }
-
-        .line.other {
-            background: #e3f2fd;
-            border-left: 4px solid #2196f3;
-        }
-
-        .line.user {
-            background: #f3e5f5;
-            border-left: 4px solid #9c27b0;
-        }
-
-        .line.current {
-            background: #fff9c4;
-            border-left: 4px solid #fbc02d;
-            box-shadow: 0 3px 10px rgba(251, 192, 45, 0.3);
-        }
-
-        .line .speaker {
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #333;
-        }
-
-        .line .text {
-            color: #555;
-            line-height: 1.6;
-        }
-
-        .status {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            text-align: center;
-        }
-
-        .status-indicator {
-            display: inline-block;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-
-        .status-indicator.speaking {
-            background: #4caf50;
-            color: white;
-        }
-
-        .status-indicator.listening {
-            background: #ff9800;
-            color: white;
-            animation: pulse 1.5s infinite;
-        }
-
-        .status-indicator.waiting {
-            background: #9e9e9e;
-            color: white;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        .progress {
-            background: #e0e0e0;
-            height: 8px;
-            border-radius: 4px;
-            margin: 20px 0;
-            overflow: hidden;
-        }
-
-        .progress-bar {
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            height: 100%;
-            transition: width 0.3s;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .error-message {
-            background: #ffebee;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            border-left: 4px solid #c62828;
-        }
-
-        .setup-view, .practice-view {
-            animation: fadeIn 0.3s;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+/* ── MISC ── */
+.hidden{display:none!important}
+.note{font-size:.8rem;color:var(--muted);padding:20px;text-align:center}
+@media(max-width:900px){
+  .stat-row{grid-template-columns:1fr 1fr}
+  .page{padding:14px 16px}
+}
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎭 Script Practice App</h1>
-            <p>Master your lines with AI-powered practice</p>
-        </div>
 
-        <div class="content">
-            <!-- Setup View -->
-            <div id="setupView" class="setup-view">
-                <div class="section">
-                    <h2>Setup Your Script</h2>
+<!-- Loading overlay -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loadingMsg">Loading…</div>
+</div>
 
-                    <div class="input-group">
-                        <label for="yourName">Your Character Name:</label>
-                        <input type="text" id="yourName" placeholder="e.g., John, Alice, Character 1">
-                        <div class="help-text">Enter your character's name in the script</div>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="scriptInput">Enter Your Script:</label>
-                        <textarea id="scriptInput" placeholder="JOHN: Hello, how are you?
-MARY: I'm doing great, thanks for asking!
-JOHN: That's wonderful to hear.
-MARY: How about you?
-JOHN: I'm doing well too."></textarea>
-                        <div class="help-text">Format: SPEAKER: line text (one line per row)</div>
-                    </div>
-
-                    <div class="button-group">
-                        <button class="btn-primary" onclick="startPractice()">Start Practice</button>
-                    </div>
-
-                    <div id="errorMessage" class="error-message hidden"></div>
-                </div>
-            </div>
-
-            <!-- Practice View -->
-            <div id="practiceView" class="practice-view">
-                <div class="section">
-                    <h2>Practice Mode</h2>
-
-                    <div class="status">
-                        <span id="statusIndicator" class="status-indicator waiting">Ready</span>
-                        <p id="statusText" style="margin-top: 10px; color: #555;">Click "Start" to begin</p>
-                    </div>
-
-                    <div class="progress">
-                        <div id="progressBar" class="progress-bar" style="width: 0%"></div>
-                    </div>
-
-                    <div class="script-display" id="scriptDisplay">
-                        <!-- Lines will be displayed here -->
-                    </div>
-
-                    <div class="button-group">
-                        <button id="startBtn" class="btn-primary" onclick="startReading()">Start</button>
-                        <button id="pauseBtn" class="btn-secondary" onclick="pausePractice()" disabled>Pause</button>
-                        <button id="resumeBtn" class="btn-primary hidden" onclick="resumePractice()">Resume</button>
-                        <button id="restartBtn" class="btn-secondary" onclick="restartLine()">Restart Current</button>
-                        <button class="btn-danger" onclick="exitPractice()">Exit Practice</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- Upload screen -->
+<div id="uploadScreen">
+  <div class="upload-box">
+    <div style="font-size:3rem;margin-bottom:8px">🏭</div>
+    <h2>Production Plan Dashboard</h2>
+    <p>Upload your production schedule Excel file to view order status, process backlog, and area output across all steps.</p>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileIn').click()">
+      <div class="dz-icon">📂</div>
+      <p><strong>Click to upload</strong> or drag &amp; drop</p>
+      <p style="font-size:.76rem;opacity:.6;margin-top:4px">.xlsx files only</p>
     </div>
+    <ul class="upload-features">
+      <li>Overview — all orders with full process workflow drill-down</li>
+      <li>Process Backlog — workload per step filtered by date range</li>
+      <li>Production Area — expected area output by process &amp; day</li>
+    </ul>
+  </div>
+</div>
+<input type="file" id="fileIn" accept=".xlsx" style="display:none">
 
-    <script>
-        // Global variables
-        let script = [];
-        let userName = '';
-        let currentLineIndex = 0;
-        let isPaused = false;
-        let isListening = false;
+<!-- Main app -->
+<div id="app">
+  <header class="hdr">
+    <div class="hdr-left">
+      <h1>Production Plan Dashboard <span id="hdrFile"></span></h1>
+    </div>
+    <div class="hdr-right">
+      <span class="hdr-meta" id="hdrMeta"></span>
+      <button class="btn-ghost" onclick="document.getElementById('fileIn').click()">Upload New File</button>
+    </div>
+  </header>
 
-        // Speech synthesis
-        const synth = window.speechSynthesis;
+  <nav class="tab-bar">
+    <button class="tab-btn active" onclick="goTab('overview',this)">📋 Overview</button>
+    <button class="tab-btn" onclick="goTab('backlog',this)">⚙️ Process Backlog</button>
+    <button class="tab-btn" onclick="goTab('production',this)">📊 Production Area</button>
+  </nav>
 
-        // Speech recognition
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let recognition = null;
+  <!-- ═══════════════════════════════════════════
+       PANE 1 — OVERVIEW
+  ═══════════════════════════════════════════ -->
+  <div class="pane active" id="pane-overview">
+    <div class="page">
 
-        // Initialize speech recognition if available
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = 'en-US';
+      <div class="toolbar">
+        <label>Search</label>
+        <input class="inp" id="ov-q" placeholder="Part number…" oninput="renderOverview()" style="min-width:180px">
+        <div class="vsep"></div>
+        <label>Order Type</label>
+        <div class="chip-group" id="ov-types"></div>
+        <div class="vsep"></div>
+        <label>Status</label>
+        <div class="chip-group" id="ov-status-chips">
+          <button class="chip on" data-s="all" onclick="ovStatus(this)">All</button>
+          <button class="chip" data-s="overdue" onclick="ovStatus(this)">Overdue</button>
+          <button class="chip" data-s="ok" onclick="ovStatus(this)">On Track</button>
+        </div>
+        <span class="row-count ml-a" id="ov-cnt">—</span>
+      </div>
 
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                console.log('User said:', transcript);
-                handleUserSpeech(transcript);
-            };
+      <div class="stat-row" id="ov-stats"></div>
 
-            recognition.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
-                if (event.error !== 'no-speech' && event.error !== 'aborted') {
-                    updateStatus('waiting', 'Error: ' + event.error + '. Click "Restart Current" to try again.');
-                }
-            };
+      <div class="tbl-wrap">
+        <div class="tbl-scr">
+          <table>
+            <thead id="ov-head">
+              <tr>
+                <th style="width:32px"></th>
+                <th onclick="ovSort('partNumber')">Part Number</th>
+                <th onclick="ovSort('orderType')">Order Type</th>
+                <th onclick="ovSort('exFactory')">Ex-Factory Date</th>
+                <th onclick="ovSort('taskCount')">Steps</th>
+                <th onclick="ovSort('minStart')">First Start</th>
+                <th onclick="ovSort('maxEnd')">Last End</th>
+                <th onclick="ovSort('maxDeadline')">Latest Deadline</th>
+                <th onclick="ovSort('overdueSteps')">Overdue Steps</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="ov-body"></tbody>
+          </table>
+        </div>
+      </div>
 
-            recognition.onend = () => {
-                if (isListening && !isPaused) {
-                    // Restart recognition if we're still in listening mode
-                    setTimeout(() => {
-                        if (isListening && !isPaused) {
-                            recognition.start();
-                        }
-                    }, 100);
-                }
-            };
-        }
+    </div>
+  </div>
 
-        function startPractice() {
-            const nameInput = document.getElementById('yourName').value.trim();
-            const scriptInput = document.getElementById('scriptInput').value.trim();
+  <!-- ═══════════════════════════════════════════
+       PANE 2 — PROCESS BACKLOG
+  ═══════════════════════════════════════════ -->
+  <div class="pane hidden" id="pane-backlog">
+    <div class="page">
 
-            if (!nameInput) {
-                showError('Please enter your character name');
-                return;
-            }
+      <div class="toolbar">
+        <label>From</label>
+        <input type="date" class="inp" id="bl-from" oninput="renderBacklog()">
+        <label>To</label>
+        <input type="date" class="inp" id="bl-to" oninput="renderBacklog()">
+        <div class="vsep"></div>
+        <label>Quick</label>
+        <div class="chip-group">
+          <button class="chip" onclick="blQuick('today')">Today</button>
+          <button class="chip" onclick="blQuick('week')">This Week</button>
+          <button class="chip" onclick="blQuick('2w')">Next 2 Weeks</button>
+          <button class="chip" onclick="blQuick('month')">This Month</button>
+          <button class="chip" onclick="blQuick('all')">All</button>
+        </div>
+        <div class="vsep"></div>
+        <label>Process</label>
+        <input class="inp" id="bl-q" placeholder="Filter…" oninput="renderBacklog()" style="min-width:140px">
+        <span class="row-count ml-a" id="bl-cnt">—</span>
+      </div>
 
-            if (!scriptInput) {
-                showError('Please enter a script');
-                return;
-            }
+      <div class="stat-row" id="bl-stats"></div>
 
-            if (!SpeechRecognition) {
-                showError('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
-                return;
-            }
+      <div class="tbl-wrap">
+        <div class="tbl-scr">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:32px"></th>
+                <th>Process Step</th>
+                <th>Tasks</th>
+                <th>Total Area (m²)</th>
+                <th>Overdue Tasks</th>
+                <th>Overdue %</th>
+                <th>Order Types</th>
+              </tr>
+            </thead>
+            <tbody id="bl-body"></tbody>
+          </table>
+        </div>
+      </div>
 
-            // Parse the script
-            userName = nameInput.toUpperCase();
-            script = parseScript(scriptInput);
+    </div>
+  </div>
 
-            if (script.length === 0) {
-                showError('Could not parse script. Make sure it follows the format: SPEAKER: line');
-                return;
-            }
+  <!-- ═══════════════════════════════════════════
+       PANE 3 — PRODUCTION AREA
+  ═══════════════════════════════════════════ -->
+  <div class="pane hidden" id="pane-production">
+    <div class="page">
 
-            // Switch to practice view
-            document.getElementById('setupView').classList.add('hidden');
-            document.getElementById('practiceView').classList.add('active');
+      <div class="toolbar">
+        <label>From</label>
+        <input type="date" class="inp" id="pr-from" oninput="renderProduction()">
+        <label>To</label>
+        <input type="date" class="inp" id="pr-to" oninput="renderProduction()">
+        <div class="vsep"></div>
+        <label>Granularity</label>
+        <div class="chip-group">
+          <button class="chip on" id="gran-day" onclick="setGran('day',this)">Daily</button>
+          <button class="chip" id="gran-week" onclick="setGran('week',this)">Weekly</button>
+        </div>
+        <div class="vsep"></div>
+        <label>Process</label>
+        <input class="inp" id="pr-q" placeholder="Filter…" oninput="renderProduction()" style="min-width:140px">
+        <span class="row-count ml-a" id="pr-cnt">—</span>
+      </div>
 
-            // Display the script
-            displayScript();
-            currentLineIndex = 0;
-            updateProgress();
-        }
+      <div class="matrix-outer">
+        <table class="mtbl" id="pr-matrix"></table>
+      </div>
 
-        function parseScript(scriptText) {
-            const lines = scriptText.split('\n');
-            const parsed = [];
+    </div>
+  </div>
 
-            for (let line of lines) {
-                line = line.trim();
-                if (!line) continue;
+</div><!-- #app -->
 
-                const colonIndex = line.indexOf(':');
-                if (colonIndex === -1) continue;
+<script>
+// ════════════════════════════════════════════════
+//  GLOBALS
+// ════════════════════════════════════════════════
+let G = {
+  rows: [],       // parsed rows
+  orders: [],     // aggregated orders
+  sortKey: 'exFactory',
+  sortAsc: true,
+  activeTypes: new Set(['__all__']),
+  activeStatus: 'all',
+  gran: 'day',
+};
 
-                const speaker = line.substring(0, colonIndex).trim().toUpperCase();
-                const text = line.substring(colonIndex + 1).trim();
+// ════════════════════════════════════════════════
+//  LOADING
+// ════════════════════════════════════════════════
+function showLoad(msg) {
+  document.getElementById('loadingMsg').textContent = msg || 'Processing…';
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoad() { document.getElementById('loadingOverlay').classList.remove('show'); }
 
-                if (speaker && text) {
-                    parsed.push({
-                        speaker: speaker,
-                        text: text,
-                        isUser: speaker === userName
-                    });
-                }
-            }
+// ════════════════════════════════════════════════
+//  DATE HELPERS
+// ════════════════════════════════════════════════
+// Parse "DD.MM.YY HH:MM:SS"
+function pDate(s) {
+  if (!s) return null;
+  s = String(s).trim();
+  const m = s.match(/^(\d{1,2})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+  if (m) return new Date(2000+Number(m[3]), Number(m[2])-1, Number(m[1]),
+                         Number(m[4]), Number(m[5]), Number(m[6]));
+  // ISO fallback "2026-05-29 08:00:00"
+  const d = new Date(s.replace(' ','T'));
+  return isNaN(d) ? null : d;
+}
 
-            return parsed;
-        }
+function ymd(d) {
+  if (!d) return '';
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
 
-        function displayScript() {
-            const display = document.getElementById('scriptDisplay');
-            display.innerHTML = '';
+function pad(n) { return String(n).padStart(2,'0'); }
 
-            script.forEach((line, index) => {
-                const lineDiv = document.createElement('div');
-                lineDiv.className = 'line ' + (line.isUser ? 'user' : 'other');
-                lineDiv.id = 'line-' + index;
+function fmtShort(d) {
+  if (!d) return '–';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
+}
 
-                const speakerDiv = document.createElement('div');
-                speakerDiv.className = 'speaker';
-                speakerDiv.textContent = line.speaker;
+function fmtDt(d) {
+  if (!d) return '–';
+  return pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
 
-                const textDiv = document.createElement('div');
-                textDiv.className = 'text';
-                textDiv.textContent = line.text;
+function dayOf(d) { const r=new Date(d); r.setHours(0,0,0,0); return r; }
 
-                lineDiv.appendChild(speakerDiv);
-                lineDiv.appendChild(textDiv);
-                display.appendChild(lineDiv);
-            });
-        }
+function addDays(d, n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
 
-        function startReading() {
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('pauseBtn').disabled = false;
-            isPaused = false;
-            processNextLine();
-        }
+function weekStart(d) {
+  const r=new Date(d); r.setDate(r.getDate()-r.getDay()); r.setHours(0,0,0,0); return r;
+}
 
-        function processNextLine() {
-            if (isPaused || currentLineIndex >= script.length) {
-                if (currentLineIndex >= script.length) {
-                    updateStatus('waiting', 'Script complete! Great job!');
-                    document.getElementById('startBtn').disabled = false;
-                    document.getElementById('pauseBtn').disabled = true;
-                    document.getElementById('restartBtn').disabled = true;
-                }
-                return;
-            }
+// ════════════════════════════════════════════════
+//  FILE INPUT
+// ════════════════════════════════════════════════
+document.getElementById('fileIn').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) loadXlsx(f);
+  e.target.value = '';
+});
 
-            // Highlight current line
-            document.querySelectorAll('.line').forEach(l => l.classList.remove('current'));
-            const currentLineElement = document.getElementById('line-' + currentLineIndex);
-            if (currentLineElement) {
-                currentLineElement.classList.add('current');
-                currentLineElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.name.endsWith('.xlsx')) loadXlsx(f);
+});
 
-            updateProgress();
+async function loadXlsx(file) {
+  showLoad('Reading Excel file…');
+  try {
+    const buf = await file.arrayBuffer();
+    showLoad('Parsing worksheet…');
+    await tick();
+    const wb = XLSX.read(buf, { type:'array', cellDates:false });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, { raw:false, defval:'' });
 
-            const currentLine = script[currentLineIndex];
+    showLoad(`Normalising ${raw.length.toLocaleString()} rows…`);
+    await tick();
 
-            if (currentLine.isUser) {
-                // User's line - wait for them to speak
-                updateStatus('listening', 'Your turn! Say your line...');
-                startListening();
-            } else {
-                // Other person's line - speak it
-                updateStatus('speaking', currentLine.speaker + ' is speaking...');
-                speakLine(currentLine.text);
-            }
-        }
+    G.rows = raw.map(r => {
+      const start    = pDate(r['Start']);
+      const end      = pDate(r['End']);
+      const deadline = pDate(r['Latest end']);
+      const exFac    = pDate(r['ExFactoryDate']);
+      const area     = parseFloat(r['lot area']) || 0;
+      return {
+        ...r,
+        _start: start,
+        _end:   end,
+        _dead:  deadline,
+        _exFac: exFac,
+        _area:  area,
+        // overdue = task starts AFTER its deadline
+        _late:  !!(start && deadline && deadline < start),
+      };
+    });
 
-        function speakLine(text) {
-            // Cancel any ongoing speech
-            synth.cancel();
+    showLoad('Building orders…');
+    await tick();
+    buildOrders();
 
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 0.9;
-            utterance.pitch = 1;
-            utterance.volume = 1;
+    // Default date ranges = first 2 weeks of data
+    const allStarts = G.rows.map(r=>r._start).filter(Boolean);
+    const dMin = new Date(Math.min(...allStarts));
+    const dMax = new Date(Math.max(...allStarts));
+    const defEnd = addDays(dMin, 13);
 
-            utterance.onend = () => {
-                currentLineIndex++;
-                setTimeout(() => processNextLine(), 500);
-            };
+    setDateInputs('bl-from','bl-to', dMin, defEnd);
+    setDateInputs('pr-from','pr-to', dMin, defEnd);
 
-            utterance.onerror = (event) => {
-                console.error('Speech synthesis error:', event);
-                currentLineIndex++;
-                setTimeout(() => processNextLine(), 500);
-            };
+    document.getElementById('hdrFile').textContent = '— '+file.name;
+    const procCount = new Set(G.rows.map(r=>r['process_name'])).size;
+    document.getElementById('hdrMeta').textContent =
+      `${G.rows.length.toLocaleString()} tasks · ${G.orders.length} orders · ${procCount} processes`;
 
-            synth.speak(utterance);
-        }
+    buildTypeChips();
 
-        function startListening() {
-            if (!recognition) {
-                updateStatus('waiting', 'Speech recognition not available');
-                return;
-            }
+    document.getElementById('uploadScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
 
-            isListening = true;
-            try {
-                recognition.start();
-            } catch (e) {
-                console.error('Failed to start recognition:', e);
-            }
-        }
+    hideLoad();
+    renderOverview();
+  } catch(e) {
+    hideLoad();
+    alert('Error loading file:\n'+e.message);
+  }
+}
 
-        function stopListening() {
-            isListening = false;
-            if (recognition) {
-                recognition.stop();
-            }
-        }
+function tick() { return new Promise(r => setTimeout(r, 20)); }
 
-        function handleUserSpeech(transcript) {
-            // User has spoken - move to next line
-            stopListening();
-            updateStatus('waiting', 'Good! Moving to next line...');
+function setDateInputs(fromId, toId, from, to) {
+  document.getElementById(fromId).value = ymd(from);
+  document.getElementById(toId).value   = ymd(to);
+}
 
-            currentLineIndex++;
-            setTimeout(() => processNextLine(), 500);
-        }
+// ════════════════════════════════════════════════
+//  BUILD ORDERS
+//  Key = part number + ex-factory date (same part, different date = different order)
+// ════════════════════════════════════════════════
+function buildOrders() {
+  const map = new Map();
+  for (const r of G.rows) {
+    const exKey = r._exFac ? ymd(r._exFac) : 'no-date';
+    const key   = (r['part number']||'') + '|||' + exKey;
+    if (!map.has(key)) {
+      map.set(key, {
+        partNumber: r['part number'] || '',
+        orderType:  r['order_type']  || '',
+        exFactory:  r._exFac,
+        tasks: [],
+      });
+    }
+    map.get(key).tasks.push(r);
+  }
 
-        function pausePractice() {
-            isPaused = true;
-            synth.cancel();
-            stopListening();
-            updateStatus('waiting', 'Paused');
-            document.getElementById('pauseBtn').classList.add('hidden');
-            document.getElementById('resumeBtn').classList.remove('hidden');
-        }
+  G.orders = Array.from(map.values()).map(o => {
+    const starts    = o.tasks.map(t=>t._start).filter(Boolean);
+    const ends      = o.tasks.map(t=>t._end).filter(Boolean);
+    const deadlines = o.tasks.map(t=>t._dead).filter(Boolean);
+    o.tasks.sort((a,b) => (a._start||0) - (b._start||0));
+    const minStart    = starts.length    ? new Date(Math.min(...starts))    : null;
+    const maxEnd      = ends.length      ? new Date(Math.max(...ends))      : null;
+    const maxDeadline = deadlines.length ? new Date(Math.max(...deadlines)) : null;
+    const overdueSteps = o.tasks.filter(t=>t._late).length;
+    return { ...o, taskCount:o.tasks.length, minStart, maxEnd, maxDeadline, overdueSteps,
+             isOverdue: overdueSteps > 0 };
+  });
+}
 
-        function resumePractice() {
-            isPaused = false;
-            document.getElementById('pauseBtn').classList.remove('hidden');
-            document.getElementById('resumeBtn').classList.add('hidden');
-            processNextLine();
-        }
+// ════════════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════════════
+const TABS = ['overview','backlog','production'];
+function goTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', TABS[i]===name));
+  document.querySelectorAll('.pane').forEach(p => { p.classList.add('hidden'); p.classList.remove('active'); });
+  const pane = document.getElementById('pane-'+name);
+  pane.classList.remove('hidden'); pane.classList.add('active');
+  if (name==='backlog')     renderBacklog();
+  if (name==='production')  renderProduction();
+}
 
-        function restartLine() {
-            synth.cancel();
-            stopListening();
-            processNextLine();
-        }
+// ════════════════════════════════════════════════
+//  OVERVIEW
+// ════════════════════════════════════════════════
+function buildTypeChips() {
+  const types = [...new Set(G.orders.map(o=>o.orderType).filter(Boolean))].sort();
+  const el = document.getElementById('ov-types');
+  el.innerHTML = `<button class="chip on" data-t="__all__" onclick="ovType(this)">All</button>`
+    + types.map(t=>`<button class="chip" data-t="${t}" onclick="ovType(this)">${esc(t)}</button>`).join('');
+}
 
-        function exitPractice() {
-            synth.cancel();
-            stopListening();
-            isPaused = true;
-            currentLineIndex = 0;
+function ovType(btn) {
+  const t = btn.dataset.t;
+  if (t==='__all__') {
+    G.activeTypes = new Set(['__all__']);
+    btn.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.t==='__all__'));
+  } else {
+    btn.classList.toggle('on');
+    const allChip = btn.closest('.chip-group').querySelector('[data-t="__all__"]');
+    allChip.classList.remove('on');
+    const active = [...btn.closest('.chip-group').querySelectorAll('.chip.on')].map(c=>c.dataset.t);
+    G.activeTypes = new Set(active.length ? active : ['__all__']);
+    if (!active.length) { allChip.classList.add('on'); G.activeTypes.add('__all__'); }
+  }
+  renderOverview();
+}
 
-            document.getElementById('practiceView').classList.remove('active');
-            document.getElementById('setupView').classList.remove('hidden');
+function ovStatus(btn) {
+  btn.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.remove('on','on-red','on-green'));
+  const s = btn.dataset.s;
+  btn.classList.add(s==='overdue'?'on-red':s==='ok'?'on-green':'on');
+  G.activeStatus = s;
+  renderOverview();
+}
 
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('pauseBtn').disabled = true;
-            document.getElementById('pauseBtn').classList.remove('hidden');
-            document.getElementById('resumeBtn').classList.add('hidden');
-        }
+let OV_SORT = 'exFactory', OV_ASC = true;
+function ovSort(k) {
+  OV_ASC = OV_SORT===k ? !OV_ASC : true;
+  OV_SORT = k;
+  renderOverview();
+}
 
-        function updateStatus(type, text) {
-            const indicator = document.getElementById('statusIndicator');
-            const statusText = document.getElementById('statusText');
+function filteredOrders() {
+  let list = G.orders;
+  if (!G.activeTypes.has('__all__')) list = list.filter(o=>G.activeTypes.has(o.orderType));
+  if (G.activeStatus==='overdue') list = list.filter(o=>o.isOverdue);
+  if (G.activeStatus==='ok')      list = list.filter(o=>!o.isOverdue);
+  const q = (document.getElementById('ov-q').value||'').trim().toLowerCase();
+  if (q) list = list.filter(o=>o.partNumber.toLowerCase().includes(q));
+  return [...list].sort((a,b)=>{
+    let va=a[OV_SORT], vb=b[OV_SORT];
+    if (va instanceof Date && vb instanceof Date) return OV_ASC?va-vb:vb-va;
+    if (typeof va==='number') return OV_ASC?va-vb:vb-va;
+    return OV_ASC?String(va||'').localeCompare(String(vb||'')):String(vb||'').localeCompare(String(va||''));
+  });
+}
 
-            indicator.className = 'status-indicator ' + type;
-            indicator.textContent = type.charAt(0).toUpperCase() + type.slice(1);
-            statusText.textContent = text;
-        }
+function renderOverview() {
+  const list = filteredOrders();
+  const overdue = list.filter(o=>o.isOverdue).length;
+  const ontrack = list.length - overdue;
+  const procs   = new Set(list.flatMap(o=>o.tasks.map(t=>t['process_name'])));
 
-        function updateProgress() {
-            const progress = (currentLineIndex / script.length) * 100;
-            document.getElementById('progressBar').style.width = progress + '%';
-        }
+  document.getElementById('ov-stats').innerHTML = `
+    <div class="stat s-blue"><div class="stat-lbl">Total Orders</div><div class="stat-val">${list.length}</div><div class="stat-sub">${new Set(list.map(o=>o.partNumber)).size} unique parts</div></div>
+    <div class="stat s-red"><div class="stat-lbl">Overdue Orders</div><div class="stat-val">${overdue}</div><div class="stat-sub">${list.length?Math.round(overdue/list.length*100):0}% of total</div></div>
+    <div class="stat s-green"><div class="stat-lbl">On Track</div><div class="stat-val">${ontrack}</div><div class="stat-sub">${list.length?Math.round(ontrack/list.length*100):0}% of total</div></div>
+    <div class="stat s-amber"><div class="stat-lbl">Processes Involved</div><div class="stat-val">${procs.size}</div><div class="stat-sub">across all orders</div></div>
+  `;
+  document.getElementById('ov-cnt').textContent = list.length+' orders';
 
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.classList.remove('hidden');
+  // Sort indicators
+  document.querySelectorAll('#ov-head th').forEach(th=>{th.classList.remove('asc','dsc')});
 
-            setTimeout(() => {
-                errorDiv.classList.add('hidden');
-            }, 5000);
-        }
+  const tbody = document.getElementById('ov-body');
+  tbody.innerHTML = '';
 
-        // Stop everything when page is closed
-        window.addEventListener('beforeunload', () => {
-            synth.cancel();
-            stopListening();
-        });
-    </script>
+  for (const o of list) {
+    const id = uid();
+    const statusBadge = o.isOverdue
+      ? '<span class="badge b-overdue">⚠ Overdue</span>'
+      : '<span class="badge b-ok">✓ On Track</span>';
+
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td><button class="xbtn" onclick="toggleRow('${id}',this)">+</button></td>
+        <td style="font-weight:700">${esc(o.partNumber)}</td>
+        <td><span class="badge b-neutral">${esc(o.orderType)}</span></td>
+        <td>${fmtShort(o.exFactory)}</td>
+        <td>${o.taskCount}</td>
+        <td>${fmtDt(o.minStart)}</td>
+        <td>${fmtDt(o.maxEnd)}</td>
+        <td>${fmtShort(o.maxDeadline)}</td>
+        <td>${o.overdueSteps>0?`<span style="color:var(--red);font-weight:700">${o.overdueSteps}</span>`:'0'}</td>
+        <td>${statusBadge}</td>
+      </tr>
+      <tr class="xrow" id="${id}">
+        <td class="xcell" colspan="10">
+          <div class="xinner">
+            <h4>Process Flow — ${esc(o.partNumber)} · Ex-Factory ${fmtShort(o.exFactory)}</h4>
+            ${flowHtml(o)}
+          </div>
+        </td>
+      </tr>
+    `);
+  }
+}
+
+function flowHtml(o) {
+  return '<div class="flow-grid">'
+    + o.tasks.map(t => {
+        const late   = t._late;
+        const hoursLeft = t._dead && t._start ? (t._dead - t._start) / 3600000 : null;
+        const warn   = !late && hoursLeft !== null && hoursLeft < 24;
+        const cls    = late ? 'f-late' : warn ? 'f-warn' : 'f-ok';
+        return `<div class="fstep ${cls}">
+          <div class="fstep-name">${esc(t['process_name']||'–')}</div>
+          <div class="fstep-detail">
+            ${t['Station']?`<b>Station:</b> ${esc(t['Station'])}<br>`:''}
+            <b>Start:</b> ${fmtDt(t._start)}<br>
+            <b>End:</b> ${fmtDt(t._end)}<br>
+            <b>Deadline:</b> ${fmtDt(t._dead)}
+            ${t['in backlog']?`<br><em style="opacity:.8">${esc(t['in backlog'])}</em>`:''}
+          </div>
+        </div>`;
+      }).join('')
+    + '</div>';
+}
+
+function toggleRow(id, btn) {
+  const row = document.getElementById(id);
+  const open = row.classList.toggle('open');
+  btn.textContent = open ? '−' : '+';
+}
+
+// ════════════════════════════════════════════════
+//  PROCESS BACKLOG
+// ════════════════════════════════════════════════
+function blQuick(key) {
+  const today = dayOf(new Date());
+  let s, e;
+  if (key==='today')  { s=today; e=today; }
+  else if (key==='week')  { s=today; e=addDays(today,6); }
+  else if (key==='2w')    { s=today; e=addDays(today,13); }
+  else if (key==='month') { s=today; e=addDays(today,29); }
+  else {
+    const dates = G.rows.map(r=>r._start).filter(Boolean);
+    s = new Date(Math.min(...dates));
+    e = new Date(Math.max(...dates));
+  }
+  setDateInputs('bl-from','bl-to',s,e);
+  renderBacklog();
+}
+
+function renderBacklog() {
+  const fromStr = document.getElementById('bl-from').value;
+  const toStr   = document.getElementById('bl-to').value;
+  const q       = (document.getElementById('bl-q').value||'').trim().toLowerCase();
+  if (!fromStr || !toStr) return;
+
+  const from = new Date(fromStr+'T00:00:00');
+  const to   = new Date(toStr+'T23:59:59');
+
+  const rows = G.rows.filter(r => r._start && r._start>=from && r._start<=to);
+
+  // Group by process
+  const map = new Map();
+  for (const r of rows) {
+    const p = r['process_name'] || 'Unknown';
+    if (!map.has(p)) map.set(p,[]);
+    map.get(p).push(r);
+  }
+
+  let procs = [...map.entries()].map(([name,tasks]) => ({
+    name,
+    tasks,
+    count:    tasks.length,
+    area:     tasks.reduce((s,t)=>s+t._area,0),
+    overdue:  tasks.filter(t=>t._late).length,
+    types:    [...new Set(tasks.map(t=>t['order_type']).filter(Boolean))],
+  })).sort((a,b)=>b.count-a.count);
+
+  if (q) procs = procs.filter(p=>p.name.toLowerCase().includes(q));
+
+  const totTasks   = rows.length;
+  const totArea    = rows.reduce((s,r)=>s+r._area,0);
+  const totOverdue = rows.filter(r=>r._late).length;
+
+  document.getElementById('bl-stats').innerHTML = `
+    <div class="stat s-blue"><div class="stat-lbl">Tasks in Range</div><div class="stat-val">${totTasks.toLocaleString()}</div><div class="stat-sub">${fromStr} → ${toStr}</div></div>
+    <div class="stat s-amber"><div class="stat-lbl">Total Area (m²)</div><div class="stat-val">${totArea.toFixed(1)}</div><div class="stat-sub">across all processes</div></div>
+    <div class="stat s-red"><div class="stat-lbl">Overdue Tasks</div><div class="stat-val">${totOverdue.toLocaleString()}</div><div class="stat-sub">${totTasks?Math.round(totOverdue/totTasks*100):0}% of tasks</div></div>
+    <div class="stat s-green"><div class="stat-lbl">Active Processes</div><div class="stat-val">${procs.length}</div><div class="stat-sub">in selected range</div></div>
+  `;
+  document.getElementById('bl-cnt').textContent = procs.length+' processes';
+
+  const tbody = document.getElementById('bl-body');
+  tbody.innerHTML = '';
+
+  for (const p of procs) {
+    const pct = p.count>0 ? Math.round(p.overdue/p.count*100) : 0;
+    const late = p.overdue>0;
+    const id = uid();
+
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td><button class="xbtn" onclick="toggleRow('${id}',this)">+</button></td>
+        <td style="font-weight:700">${esc(p.name)}</td>
+        <td>${p.count.toLocaleString()}</td>
+        <td>${p.area.toFixed(2)}</td>
+        <td ${late?'style="color:var(--red);font-weight:700"':''}>${p.overdue}</td>
+        <td ${late?'style="color:var(--red);font-weight:700"':''}>${pct}%</td>
+        <td class="wrap">${p.types.map(t=>`<span class="badge b-neutral" style="margin:1px">${esc(t)}</span>`).join('')}</td>
+      </tr>
+      <tr class="xrow" id="${id}">
+        <td class="xcell" colspan="7">
+          <div class="xinner">
+            <h4>${esc(p.name)} — ${p.count} tasks in range</h4>
+            <div class="tbl-scr">
+              <table>
+                <thead><tr>
+                  <th>Part Number</th><th>Order Type</th><th>Station</th>
+                  <th>Start</th><th>End</th><th>Deadline</th>
+                  <th>Area (m²)</th><th>Status</th><th>Backlog Type</th>
+                </tr></thead>
+                <tbody>
+                  ${p.tasks.slice(0,300).map(t=>`
+                    <tr>
+                      <td style="font-weight:600">${esc(t['part number']||'')}</td>
+                      <td><span class="badge b-neutral">${esc(t['order_type']||'')}</span></td>
+                      <td>${esc(t['Station']||'')}</td>
+                      <td>${fmtDt(t._start)}</td>
+                      <td>${fmtDt(t._end)}</td>
+                      <td>${fmtDt(t._dead)}</td>
+                      <td>${t._area.toFixed(3)}</td>
+                      <td>${t._late?'<span class="badge b-overdue">Late</span>':'<span class="badge b-ok">OK</span>'}</td>
+                      <td style="font-size:.72rem;color:var(--muted)">${esc(t['in backlog']||'')}</td>
+                    </tr>
+                  `).join('')}
+                  ${p.tasks.length>300?`<tr><td colspan="9" class="note">… and ${p.tasks.length-300} more</td></tr>`:''}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </td>
+      </tr>
+    `);
+  }
+}
+
+// ════════════════════════════════════════════════
+//  PRODUCTION AREA MATRIX
+// ════════════════════════════════════════════════
+function setGran(g, btn) {
+  G.gran = g;
+  document.querySelectorAll('#pane-production .chip[id^="gran"]').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderProduction();
+}
+
+function renderProduction() {
+  const fromStr = document.getElementById('pr-from').value;
+  const toStr   = document.getElementById('pr-to').value;
+  const q       = (document.getElementById('pr-q').value||'').trim().toLowerCase();
+  if (!fromStr || !toStr) return;
+
+  const from = new Date(fromStr+'T00:00:00');
+  const to   = new Date(toStr+'T23:59:59');
+
+  // Build bucket list
+  const buckets = [];
+  if (G.gran==='day') {
+    for (let d=new Date(from); d<=to; d=addDays(d,1)) buckets.push(new Date(d));
+  } else {
+    for (let d=weekStart(from); d<=to; d=addDays(d,7)) buckets.push(new Date(d));
+  }
+
+  if (buckets.length>120) {
+    document.getElementById('pr-matrix').innerHTML =
+      `<tr><td style="padding:24px;color:var(--red)">Range too large (${buckets.length} columns). Select a smaller range or switch to Weekly.</td></tr>`;
+    return;
+  }
+
+  const bucketKey = d => G.gran==='day' ? ymd(d) : ymd(weekStart(d));
+
+  const rows = G.rows.filter(r => r._start && r._start>=from && r._start<=to);
+
+  // Accumulate area per process per bucket
+  const procMap = new Map();
+  for (const r of rows) {
+    const p = r['process_name'] || 'Unknown';
+    const k = bucketKey(r._start);
+    if (!procMap.has(p)) procMap.set(p, new Map());
+    procMap.get(p).set(k, (procMap.get(p).get(k)||0) + r._area);
+  }
+
+  let procs = [...procMap.entries()]
+    .map(([name,bm]) => {
+      const total = [...bm.values()].reduce((s,v)=>s+v,0);
+      return { name, bm, total };
+    })
+    .sort((a,b)=>b.total-a.total);
+
+  if (q) procs = procs.filter(p=>p.name.toLowerCase().includes(q));
+
+  document.getElementById('pr-cnt').textContent = procs.length+' processes';
+
+  if (!procs.length) {
+    document.getElementById('pr-matrix').innerHTML = `<tr><td class="note">No data for selected range.</td></tr>`;
+    return;
+  }
+
+  // Max value per row for heat intensity
+  procs.forEach(p => { p.max = Math.max(...[...p.bm.values()], 0.001); });
+
+  // Column totals
+  const bKeys = buckets.map(bucketKey);
+  const colTotals = bKeys.map(k => procs.reduce((s,p)=>s+(p.bm.get(k)||0),0));
+  const grandTotal = colTotals.reduce((s,v)=>s+v,0);
+
+  const fmtBktHdr = d => G.gran==='day'
+    ? d.toLocaleDateString('en-US',{month:'short',day:'numeric'})
+    : 'W '+pad(d.getMonth()+1)+'/'+pad(d.getDate());
+
+  let html = `<thead>
+    <tr>
+      <th class="sticky-both sticky-col">Process Step</th>
+      ${buckets.map(b=>`<th class="sticky-row">${fmtBktHdr(b)}</th>`).join('')}
+      <th class="sticky-row" style="background:#e8f5e9;color:var(--green)">Total</th>
+    </tr>
+  </thead><tbody>`;
+
+  for (const p of procs) {
+    html += `<tr>
+      <td class="proc-cell">${esc(p.name)}</td>
+      ${bKeys.map(k=>{
+        const v = p.bm.get(k)||0;
+        const ratio = v/p.max;
+        const bg = v>0 ? `rgba(21,101,192,${(ratio*0.55).toFixed(2)})` : 'transparent';
+        const color = ratio>0.6 ? '#fff' : 'inherit';
+        return `<td style="background:${bg};color:${color}">${v>0?v.toFixed(2):''}</td>`;
+      }).join('')}
+      <td class="t-total">${p.total.toFixed(2)}</td>
+    </tr>`;
+  }
+
+  html += `<tr class="r-total">
+    <td class="proc-cell">TOTAL</td>
+    ${colTotals.map(v=>`<td>${v>0?v.toFixed(2):''}</td>`).join('')}
+    <td class="t-total">${grandTotal.toFixed(2)}</td>
+  </tr></tbody>`;
+
+  document.getElementById('pr-matrix').innerHTML = html;
+}
+
+// ════════════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════════════
+let _uidN = 0;
+function uid() { return 'r'+(++_uidN); }
+
+function esc(s) {
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
 </body>
 </html>

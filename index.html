@@ -196,8 +196,10 @@ tbody td.wrap{white-space:normal;max-width:280px}
   <nav class="tab-bar">
     <button class="tab-btn active" onclick="goTab('overview',this)" data-i="tab1">📋 Overview</button>
     <button class="tab-btn" onclick="goTab('backlog',this)" data-i="tab2">⚙️ Process Backlog</button>
+    <button class="tab-btn" onclick="goTab('equipment',this)">🏭 Equipment OEE</button>
+    <button class="tab-btn" onclick="goTab('target',this)" data-i="tab4">🎯 Target vs Scheduled</button>
     <button class="tab-btn" onclick="goTab('production',this)" data-i="tab3">📊 Production Area</button>
-    <button class="tab-btn" onclick="goTab('target',this)">🎯 Target vs Scheduled</button>
+    <button class="tab-btn" onclick="goTab('scenario',this)">🔬 Scenario Planner</button>
   </nav>
 
   <!-- PANE 1: OVERVIEW -->
@@ -232,8 +234,8 @@ tbody td.wrap{white-space:normal;max-width:280px}
                 <th class="sortable num" data-k="stepCount" data-i="colSteps">Steps</th>
                 <th class="sortable num" data-k="totalArea" data-i="colAreaOv">Area (m²)</th>
                 <th class="sortable num" data-k="overdueCount" data-i="colOverdue">Overdue Tasks</th>
-                <th class="sortable" data-k="maxEnd" data-i="colEstEnd">Est. End Date</th>
-                <th class="sortable" data-k="exFactory" data-i="colExFactory">Ex-Factory Date</th>
+                <th class="sortable num" data-k="maxEnd" data-i="colEstEnd">Est. End Date</th>
+                <th class="sortable num" data-k="exFactory" data-i="colExFactory">Ex-Factory Date</th>
                 <th data-i="colStatus">Status</th>
               </tr>
             </thead>
@@ -278,6 +280,9 @@ tbody td.wrap{white-space:normal;max-width:280px}
                 <th class="num" data-i="colArea">Total Area (m²)</th>
                 <th class="num" data-i="colOverdueTasks">Overdue Tasks</th>
                 <th class="num" data-i="colOverduePct">Overdue %</th>
+                <th class="num">Fab Time (hrs)</th>
+                <th class="num">Idle Time (hrs)</th>
+                <th class="num">Est. OEE %</th>
                 <th data-i="colOrderTypes">Order Types</th>
               </tr>
             </thead>
@@ -316,10 +321,10 @@ tbody td.wrap{white-space:normal;max-width:280px}
   <div class="pane hidden" id="pane-target">
     <div class="page">
       <div class="toolbar">
-        <label>Date</label>
+        <label data-i="tgDate">Date</label>
         <input type="date" class="inp" id="tg-date" oninput="renderTarget()">
         <div class="vsep"></div>
-        <label>Process</label>
+        <label data-i="tgProcess">Process</label>
         <input class="inp" id="tg-q" placeholder="Filter…" oninput="renderTarget()" style="min-width:130px">
         <span class="row-count ml-a" id="tg-cnt">—</span>
       </div>
@@ -329,12 +334,12 @@ tbody td.wrap{white-space:normal;max-width:280px}
           <table>
             <thead>
               <tr>
-                <th>Process Step</th>
-                <th class="num">Daily Target (m²)</th>
-                <th class="num">Scheduled Area (m²)</th>
-                <th class="num">Difference (m²)</th>
-                <th class="num">vs Target %</th>
-                <th>Status</th>
+                <th data-i="tgProcess">Process Step</th>
+                <th class="num" data-i="tgDailyTarget">Daily Target (m²)</th>
+                <th class="num" data-i="tgScheduled">Scheduled Area (m²)</th>
+                <th class="num" data-i="tgDiff">Difference (m²)</th>
+                <th class="num" data-i="tgVsPct">vs Target %</th>
+                <th data-i="tgStatus">Status</th>
               </tr>
             </thead>
             <tbody id="tg-body"></tbody>
@@ -344,10 +349,10 @@ tbody td.wrap{white-space:normal;max-width:280px}
       <div style="margin-top:18px">
         <div class="tbl-wrap">
           <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
-            <span style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Daily Breakdown — Scheduled vs Target</span>
+            <span style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em" data-i="tgBreakdown">Daily Breakdown — Scheduled vs Target</span>
             <div class="chip-group" style="margin-left:auto">
-              <button class="chip on" id="tg-toggle-num" onclick="tgToggle('num')">Number</button>
-              <button class="chip" id="tg-toggle-pct" onclick="tgToggle('pct')">%</button>
+              <button class="chip on" id="tg-toggle-num" onclick="tgToggle('num')" data-i="tgNum">Number</button>
+              <button class="chip" id="tg-toggle-pct" onclick="tgToggle('pct')" data-i="tgPct">%</button>
             </div>
           </div>
           <div class="tbl-scr">
@@ -360,7 +365,185 @@ tbody td.wrap{white-space:normal;max-width:280px}
       </div>
     </div>
   </div>
+
+  <!-- PANE 5: SCENARIO PLANNER -->
+  <div class="pane hidden" id="pane-scenario">
+    <div class="page">
+
+      <div style="display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start">
+
+        <!-- LEFT PANEL: Order selector + scenario list -->
+        <div>
+          <!-- Search to add orders -->
+          <div class="tbl-wrap" style="margin-bottom:14px">
+            <div style="padding:12px 14px;border-bottom:1px solid var(--border)">
+              <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px" data-i="scAddOrders">Add Orders to Scenario</div>
+              <input class="inp" id="sc-search" placeholder="Search part number…" oninput="scFilterOrders()" style="width:100%">
+            </div>
+            <div id="sc-order-list" style="max-height:260px;overflow-y:auto;font-size:.82rem"></div>
+          </div>
+
+          <!-- Scenario orders -->
+          <div class="tbl-wrap">
+            <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+              <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)" data-i="scSelected">Scenario Orders <span id="sc-count" style="color:var(--blue)">0</span></div>
+              <button onclick="scClearAll()" style="font-size:.72rem;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline">Clear all</button>
+            </div>
+            <div id="sc-selected-list" style="max-height:320px;overflow-y:auto;font-size:.82rem">
+              <div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem">No orders added yet.<br>Search and click an order above.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL: Simulation controls + results -->
+        <div>
+          <!-- Controls -->
+          <div class="toolbar" style="margin-bottom:14px;flex-wrap:wrap;gap:12px">
+            <div>
+              <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px" data-i="scSimDate">Sim Start Date</div>
+              <input type="date" class="inp" id="sc-date" style="min-width:150px">
+            </div>
+            <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-end">
+              <button onclick="scReset()" style="padding:7px 14px;border-radius:6px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:.82rem;cursor:pointer" data-i="scReset">↺ Reset</button>
+              <button onclick="runScenario()" style="padding:7px 18px;border-radius:6px;border:none;background:var(--blue);color:#fff;font-weight:700;font-size:.82rem;cursor:pointer" data-i="scRun">▶ Run Simulation</button>
+            </div>
+          </div>
+
+          <!-- Stat cards -->
+          <div class="stat-row" id="sc-stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px"></div>
+
+          <!-- Legend -->
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-size:.76rem;color:var(--muted)">
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--green);margin-right:3px"></span>On time</span>
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--amber);margin-right:3px"></span>At risk (≤3 days)</span>
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--red);margin-right:3px"></span>Will miss deadline</span>
+          </div>
+
+          <!-- Results table -->
+          <div class="tbl-wrap" id="sc-results-wrap" style="display:none">
+            <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+              <span style="font-size:.78rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.05em">📋 Scenario Orders</span>
+              <button onclick="scExport()" style="margin-left:auto;padding:5px 12px;border-radius:5px;border:1.5px solid var(--border);background:#fff;font-size:.75rem;cursor:pointer">⬇ Export</button>
+            </div>
+            <div class="tbl-scr">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Part Number</th>
+                    <th>Change</th>
+                    <th class="num">Ex-Factory / Deadline</th>
+                    <th class="num">Baseline End</th>
+                    <th class="num">Sim. End</th>
+                    <th class="num">Shift</th>
+                    <th class="num">Buffer</th>
+                    <th>Outcome</th>
+                  </tr>
+                </thead>
+                <tbody id="sc-results-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Consequences section -->
+          <div class="tbl-wrap" id="sc-consequences-wrap" style="display:none;margin-top:14px">
+            <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:#fff3e0">
+              <span id="sc-consequences-title" style="font-size:.78rem;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.05em">⚠ Consequences</span>
+            </div>
+            <div class="tbl-scr">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Part Number</th>
+                    <th>Reason</th>
+                    <th class="num">Ex-Factory</th>
+                    <th class="num">Baseline End</th>
+                    <th class="num">Sim. End</th>
+                    <th class="num">Pushed by</th>
+                    <th class="num">Buffer</th>
+                    <th>Outcome</th>
+                  </tr>
+                </thead>
+                <tbody id="sc-consequences-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="sc-no-results" style="padding:40px;text-align:center;color:var(--muted);font-size:.88rem">
+            Add orders on the left, configure changes, then click <strong>Run Simulation</strong>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANE 6: EQUIPMENT OEE -->
+  <div class="pane hidden" id="pane-equipment">
+    <div class="page">
+      <div class="toolbar" style="flex-wrap:wrap;gap:10px">
+        <label>From</label>
+        <input type="date" class="inp" id="eq-from" oninput="renderEquipment()">
+        <label>To</label>
+        <input type="date" class="inp" id="eq-to" oninput="renderEquipment()">
+        <div class="vsep"></div>
+        <label>Quick</label>
+        <div class="chip-group">
+          <button class="chip" onclick="eqQuick('today')">Today</button>
+          <button class="chip" onclick="eqQuick('week')">This Week</button>
+          <button class="chip" onclick="eqQuick('2w')">Next 2 Weeks</button>
+          <button class="chip" onclick="eqQuick('month')">This Month</button>
+        </div>
+        <div class="vsep"></div>
+        <label>Process</label>
+        <input class="inp" id="eq-proc" placeholder="Filter process…" oninput="renderEquipment()" style="min-width:140px">
+        <span class="row-count ml-a" id="eq-cnt">—</span>
+      </div>
+      <div class="stat-row" id="eq-stats"></div>
+      <div class="tbl-wrap">
+        <div class="tbl-scr">
+          <table id="eq-table">
+            <thead>
+              <tr>
+                <th style="width:32px"></th>
+                <th data-i="eqColStation">Station / Equipment</th>
+                <th data-i="eqColProcess">Process(es)</th>
+                <th class="num" data-i="eqColTasks">Tasks</th>
+                <th class="num" data-i="eqColPNs">Unique PNs</th>
+                <th class="num" data-i="eqColCO">Changeovers</th>
+                <th class="num" data-i="eqColFab">Fab (hrs)</th>
+                <th class="num" data-i="eqColIdle">Idle (hrs)</th>
+                <th class="num" data-i="eqColOEE">OEE %</th>
+                <th data-i="eqColBar">Timeline</th>
+              </tr>
+            </thead>
+            <tbody id="eq-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<style>
+/* SCENARIO PLANNER */
+.sc-order-row{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #f0f4f8;cursor:pointer;transition:background .1s}
+.sc-order-row:hover{background:#f6f9ff}
+.sc-order-row.added{background:#e8f5e9;cursor:default}
+.sc-selected-row{padding:10px 14px;border-bottom:1px solid #f0f4f8}
+.sc-selected-row .pn{font-weight:700;font-size:.84rem;color:var(--text)}
+.sc-change-row{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.sc-chip{padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--muted);transition:all .15s}
+.sc-chip.active-urgent{background:#c62828;color:#fff;border-color:#c62828}
+.sc-chip.active-date{background:var(--blue);color:#fff;border-color:var(--blue)}
+.sc-date-inp{padding:3px 8px;border:1.5px solid var(--blue);border-radius:5px;font-size:.78rem;color:var(--text);width:130px}
+.sc-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;margin-left:auto;padding:0 4px}
+.sc-remove:hover{color:var(--red)}
+.sc-scenario-row td{background:#e3f2fd22}
+.sc-impacted-row td{background:#fff3e022}
+.eq-stn-row{cursor:pointer;transition:background .1s}
+.eq-stn-row:hover td{background:#f6f9ff}
+.eq-batch{background:#fffde7}
+.eq-batch:hover td{background:#fff8e0}
+</style>
 
 <script>
 // ═══════════════════════════════════════════════════════
@@ -467,6 +650,33 @@ const TRANS = {
     badgeOverdue:'⚠ Overdue', badgeOk:'✓ On Track', badgeLate:'Late', badgeGood:'OK',
     allUrgent:'ALL URGENT', urgent:'Urgent', urgentOrders:'🚨 Urgent',
     uniqueParts:'unique part numbers', ofTotal:'of total',
+    tab4:'🎯 Target vs Scheduled',
+    tgDate:'Date', tgProcess:'Process', tgDailyTarget:'Daily Target',
+    tgScheduled:'Scheduled Area', tgDiff:'Difference', tgVsPct:'vs Target %', tgStatus:'Status',
+    tgStatDate:'Date', tgStatSched:'Total Scheduled', tgStatMeeting:'Meeting Target (≥90%)', tgStatBelow:'Below 50% Target',
+    tgOnTarget:'✓ On Target', tgNearTarget:'✓ Near Target', tgBelow:'⚠ Below Target', tgFarBelow:'✗ Far Below', tgNoData:'No Data',
+    tgBreakdown:'Daily Breakdown — Scheduled vs Target',
+    tgNum:'Number', tgPct:'%',
+    scTitle:'Scenario Planner', scAddOrders:'Add Orders to Scenario',
+    scSelected:'Scenario Orders', scSimDate:'Sim Start Date',
+    scReset:'Reset', scRun:'▶ Run Simulation',
+    scUrgent:'🚨 Urgent — ASAP', scMustBy:'📅 Must complete by',
+    scOnTime:'Scenario On Time', scAtRisk:'Scenario At Risk',
+    scWillMiss:'Scenario Will Miss', scNewlyLate:'Newly Late (Consequence)',
+    scPN:'Part Number', scChange:'Change', scDeadline:'Ex-Factory / Deadline',
+    scBaseline:'Baseline End', scSimEnd:'Sim. End', scShift:'Shift', scBuffer:'Buffer', scOutcome:'Outcome',
+    scConsequences:'Consequences', scImpacted:'Pushed out',
+    scNoPNs:'No orders added yet. Search and click an order above.',
+    scNoResults:'Add orders on the left, configure changes, then click Run Simulation.',
+    eqTitle:'Equipment OEE', eqAvgOEE:'Avg Station OEE', eqHighOEE:'High OEE (≥80%)',
+    eqLowOEE:'Low OEE (<50%)', eqBatch:'Batch Opportunities', eqStations:'stations',
+    eqProcesses:'processes', eqProcOEE:'Process OEE',
+    eqColStation:'Station / Equipment', eqColProcess:'Process(es)',
+    eqColTasks:'Tasks', eqColPNs:'Unique PNs', eqColCO:'Changeovers',
+    eqColFab:'Fab (hrs)', eqColIdle:'Idle (hrs)', eqColOEE:'OEE %', eqColBar:'Timeline',
+    eqBatchOpp:'⚡ Batching Opportunity',
+    eqBatchDesc:'Same PN runs non-consecutively — resequencing to batch together eliminates avoidable setups.',
+    eqScheduled:'Scheduled', eqIdle:'Idle',
   },
   zh: {
     appTitle:'生产计划看板', uploadNew:'上传新文件',
@@ -497,6 +707,33 @@ const TRANS = {
     badgeOverdue:'⚠ 逾期', badgeOk:'✓ 正常', badgeLate:'逾期', badgeGood:'正常',
     allUrgent:'全部紧急', urgent:'紧急', urgentOrders:'🚨 紧急订单',
     uniqueParts:'个唯一料号', ofTotal:'占总数',
+    tab4:'🎯 目标与计划对比',
+    tgDate:'日期', tgProcess:'工序', tgDailyTarget:'日目标',
+    tgScheduled:'计划面积', tgDiff:'差异', tgVsPct:'达成率', tgStatus:'状态',
+    tgStatDate:'日期', tgStatSched:'计划总面积', tgStatMeeting:'达标工序 (≥90%)', tgStatBelow:'低于50%目标',
+    tgOnTarget:'✓ 达标', tgNearTarget:'✓ 接近目标', tgBelow:'⚠ 未达标', tgFarBelow:'✗ 严重不足', tgNoData:'无数据',
+    tgBreakdown:'每日明细 — 计划 vs 目标',
+    tgNum:'数值', tgPct:'百分比',
+    scTitle:'计划模拟器', scAddOrders:'添加订单至模拟',
+    scSelected:'模拟订单', scSimDate:'模拟开始日期',
+    scReset:'重置', scRun:'▶ 运行模拟',
+    scUrgent:'🚨 紧急 — 尽快', scMustBy:'📅 必须在此日期前完成',
+    scOnTime:'模拟准时', scAtRisk:'模拟有风险',
+    scWillMiss:'模拟将错过', scNewlyLate:'新增逾期（影响）',
+    scPN:'料号', scChange:'变更', scDeadline:'出厂日期/截止日',
+    scBaseline:'基准完成', scSimEnd:'模拟完成', scShift:'偏移', scBuffer:'缓冲', scOutcome:'结果',
+    scConsequences:'影响后果', scImpacted:'被推迟',
+    scNoPNs:'尚未添加订单，请在上方搜索并点击订单。',
+    scNoResults:'在左侧添加订单，配置变更，然后点击运行模拟。',
+    eqTitle:'设备OEE', eqAvgOEE:'平均站点OEE', eqHighOEE:'高OEE (≥80%)',
+    eqLowOEE:'低OEE (<50%)', eqBatch:'合批机会', eqStations:'站点',
+    eqProcesses:'工序', eqProcOEE:'工序OEE',
+    eqColStation:'站点/设备', eqColProcess:'工序',
+    eqColTasks:'任务数', eqColPNs:'唯一料号', eqColCO:'换型次数',
+    eqColFab:'生产时间(h)', eqColIdle:'空闲时间(h)', eqColOEE:'OEE %', eqColBar:'时间轴',
+    eqBatchOpp:'⚡ 合批机会',
+    eqBatchDesc:'同一料号非连续排产 — 重新排序可消除不必要的换型设置。',
+    eqScheduled:'生产中', eqIdle:'空闲',
   }
 };
 
@@ -507,11 +744,13 @@ function toggleLang() {
   LANG = LANG === 'en' ? 'zh' : 'en';
   document.getElementById('langBtn').textContent = LANG === 'en' ? '中文' : 'EN';
   applyTranslations();
-  // Re-render current tab
   const active = document.querySelector('.pane.active');
   if (active.id === 'pane-overview')    renderOverview();
   if (active.id === 'pane-backlog')     renderBacklog();
   if (active.id === 'pane-production')  renderProduction();
+  if (active.id === 'pane-target')      renderTarget();
+  if (active.id === 'pane-scenario')    renderScenarioLang();
+  if (active.id === 'pane-equipment')   renderEquipment();
 }
 
 function applyTranslations() {
@@ -609,13 +848,26 @@ async function loadXlsx(file) {
 
     const allStarts = G.rows.map(r=>r._start).filter(Boolean);
     const dMin = new Date(Math.min(...allStarts));
-    const defEnd = addDays(dMin,13);
-    setDI('bl-from',ymd(dMin)); setDI('bl-to',ymd(defEnd));
-    setDI('pr-from',ymd(dMin)); setDI('pr-to',ymd(defEnd));
 
-    // Auto-detect date from filename e.g. 5_22_2025.xlsx → use next day
+    // Use filename date as the "from" base for all tabs
     const fnDate = parseDateFromFilename(file.name);
-    const tgDate = fnDate ? ymd(addDays(fnDate, 1)) : ymd(addDays(new Date(), 1));
+    const baseDate = fnDate ? fnDate : dMin;
+    const baseDateStr = ymd(baseDate);
+
+    // Process Backlog — 1 day (just the base date)
+    setDI('bl-from', baseDateStr);
+    setDI('bl-to',   baseDateStr);
+
+    // Production Area — 14 days from base
+    setDI('pr-from', baseDateStr);
+    setDI('pr-to',   ymd(addDays(baseDate, 13)));
+
+    // Equipment OEE — 3 days from base
+    setDI('eq-from', baseDateStr);
+    setDI('eq-to',   ymd(addDays(baseDate, 2)));
+
+    // Target vs Scheduled — day after base date
+    const tgDate = ymd(addDays(baseDate, 1));
     setDI('tg-date', tgDate);
 
     document.getElementById('hdrFile').textContent = '— '+file.name;
@@ -675,7 +927,7 @@ function buildOrders() {
 // ═══════════════════════════════════════════════════════
 //  TABS
 // ═══════════════════════════════════════════════════════
-const TABS = ['overview','backlog','production','target'];
+const TABS = ['overview','backlog','equipment','target','production','scenario'];
 function goTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TABS[i]===name));
   document.querySelectorAll('.pane').forEach(p=>{p.classList.add('hidden');p.classList.remove('active');});
@@ -684,6 +936,8 @@ function goTab(name, btn) {
   if(name==='backlog')    renderBacklog();
   if(name==='production') renderProduction();
   if(name==='target')     renderTarget();
+  if(name==='scenario')   initScenario();
+  if(name==='equipment')  renderEquipment();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -808,8 +1062,8 @@ function renderOverview() {
         <td class="num">${fmtN(o.stepCount)}</td>
         <td class="num">${o.totalArea>0 ? fmtN(o.totalArea,2) : '–'}</td>
         <td class="num" ${late?'style="color:var(--red);font-weight:700"':''}>${fmtN(o.overdueCount||0)}</td>
-        <td>${fmtDt(o.maxEnd)}</td>
-        <td>${fmtS(o.exFactory)}</td>
+        <td class="num">${fmtDt(o.maxEnd)}</td>
+        <td class="num">${fmtS(o.exFactory)}</td>
         <td>${badge}</td>
       </tr>
       <tr class="xrow" id="${id}">
@@ -875,7 +1129,7 @@ function buildLotView(o) {
     <tr>
       <td style="font-family:monospace;font-size:.78rem;white-space:nowrap">${esc(lr.lid)}</td>
       <td><span class="badge b-blue">${esc(lr.curStep)}</span></td>
-      <td>${fmtDt(lr.lastEnd)}</td>
+      <td class="num">${fmtDt(lr.lastEnd)}</td>
       <td>${lr.isLate?`<span class="badge b-overdue">${t('badgeLate')}</span>`:`<span class="badge b-ok">${t('badgeGood')}</span>`}</td>
     </tr>`).join('');
 
@@ -921,8 +1175,14 @@ function renderBacklog() {
   const q      =(document.getElementById('bl-q').value||'').trim().toLowerCase();
   if(!fromStr||!toStr) return;
 
-  const from=new Date(fromStr+'T00:00:00'), to=new Date(toStr+'T23:59:59');
-  const rows=G.rows.filter(r=>r._start&&r._start>=from&&r._start<=to);
+  const from=new Date(fromStr+'T00:00:00');
+  const to  =new Date(toStr+'T00:00:00');
+  const winS=from.getTime();
+  const winE=addDays(to,1).getTime(); // exclusive end = start of next day
+  const numDaysBl=Math.round((winE-winS)/86400000);
+
+  // Include rows that overlap the window (not just those starting in it)
+  const rows=G.rows.filter(r=>r._start&&r._end&&r._start.getTime()<winE&&r._end.getTime()>winS);
 
   // Group by process
   const map=new Map();
@@ -932,6 +1192,25 @@ function renderBacklog() {
     map.get(p).push(r);
   }
 
+  // OEE helper: merge overlapping intervals then clamp to window
+  function calcOEE(tasks) {
+    const availMs = numDaysBl * 86400000;
+    const intervals = tasks
+      .filter(r=>r._start&&r._end)
+      .map(r=>({s:r._start.getTime(), e:r._end.getTime()}));
+    const merged = mergeIntervals(intervals);
+    let fabMs = 0;
+    for (const iv of merged) {
+      const s=Math.max(iv.s, winS), e=Math.min(iv.e, winE);
+      if (e>s) fabMs+=(e-s);
+    }
+    const fabHrs  = fabMs / 3600000;
+    const availHrs = availMs / 3600000;
+    const idleHrs  = Math.max(0, availHrs - fabHrs);
+    const oee      = Math.min(100, Math.round(fabMs / availMs * 100));
+    return { fabHrs, idleHrs, oee, availHrs };
+  }
+
   // Sort by PCB order, then unknown processes alphabetically at end
   let procs=[...map.entries()].map(([name,tasks])=>({
     name, tasks, count:tasks.length,
@@ -939,6 +1218,7 @@ function renderBacklog() {
     overdue: tasks.filter(t2=>t2._late).length,
     types: [...new Set(tasks.map(t2=>t2['order_type']).filter(Boolean))],
     rank: pcbRank(name),
+    oee: calcOEE(tasks),
   }));
   procs.sort((a,b)=>a.rank!==b.rank ? a.rank-b.rank : a.name.localeCompare(b.name));
 
@@ -962,6 +1242,7 @@ function renderBacklog() {
     const pct=p.count>0?Math.round(p.overdue/p.count*100):0;
     const red=p.overdue>0;
     const id=uid();
+    const oeeColor = p.oee.oee>=80?'color:var(--green)':p.oee.oee>=50?'color:var(--amber)':'color:var(--red)';
     tbody.insertAdjacentHTML('beforeend',`
       <tr>
         <td><button class="xbtn" onclick="toggleRow('${id}',this)">+</button></td>
@@ -970,10 +1251,13 @@ function renderBacklog() {
         <td class="num">${fmtN(p.area,2)}</td>
         <td class="num" ${red?'style="color:var(--red);font-weight:700"':''}>${fmtN(p.overdue)}</td>
         <td class="num" ${red?'style="color:var(--red);font-weight:700"':''}>${pct}%</td>
+        <td class="num">${fmtN(p.oee.fabHrs,1)}</td>
+        <td class="num" style="color:var(--muted)">${fmtN(p.oee.idleHrs,1)}</td>
+        <td class="num" style="${oeeColor};font-weight:700">${p.oee.oee}%</td>
         <td class="wrap">${p.types.map(ty=>`<span class="badge b-neutral" style="margin:1px">${esc(ty)}</span>`).join('')}</td>
       </tr>
       <tr class="xrow" id="${id}">
-        <td class="xcell" colspan="7">
+        <td class="xcell" colspan="10">
           <div class="xinner">
             <div class="xinner-title">${esc(p.name)} — ${p.count} tasks</div>
             <div class="tbl-scr"><table>
@@ -988,7 +1272,7 @@ function renderBacklog() {
                     <td style="font-weight:600">${esc(r['part number']||'')}</td>
                     <td><span class="badge b-neutral">${esc(r['order_type']||'')}</span></td>
                     <td>${esc(r['Station']||'')}</td>
-                    <td>${fmtDt(r._start)}</td><td>${fmtDt(r._end)}</td><td>${fmtDt(r._dead)}</td>
+                    <td class="num">${fmtDt(r._start)}</td><td class="num">${fmtDt(r._end)}</td><td class="num">${fmtDt(r._dead)}</td>
                     <td class="num">${fmtN(r._area,3)}</td>
                     <td>${r._late?`<span class="badge b-overdue">${t('badgeLate')}</span>`:`<span class="badge b-ok">${t('badgeGood')}</span>`}</td>
                     <td style="font-size:.72rem;color:var(--muted)">${esc(r['in backlog']||'')}</td>
@@ -1151,10 +1435,10 @@ function renderTarget() {
   const farBelow   = procs.filter(p=>p.pct < 50).length;
 
   document.getElementById('tg-stats').innerHTML=`
-    <div class="stat s-blue"><div class="stat-lbl">Date</div><div class="stat-val" style="font-size:1.2rem">${dateStr}</div><div class="stat-sub">${dayRows.length} tasks scheduled</div></div>
-    <div class="stat s-green"><div class="stat-lbl">Total Scheduled</div><div class="stat-val">${fmtN(totalSched,0)}</div><div class="stat-sub">vs target ${fmtN(totalTgt,0)}</div></div>
-    <div class="stat s-green"><div class="stat-lbl">Meeting Target (≥90%)</div><div class="stat-val">${onTarget}</div><div class="stat-sub">of ${procs.length} processes</div></div>
-    <div class="stat s-red"><div class="stat-lbl">Below 50% Target</div><div class="stat-val">${farBelow}</div><div class="stat-sub">processes need attention</div></div>
+    <div class="stat s-blue"><div class="stat-lbl">${t('tgStatDate')}</div><div class="stat-val" style="font-size:1.2rem">${dateStr}</div><div class="stat-sub">${dayRows.length} tasks</div></div>
+    <div class="stat s-green"><div class="stat-lbl">${t('tgStatSched')}</div><div class="stat-val">${fmtN(totalSched,0)}</div><div class="stat-sub">vs ${fmtN(totalTgt,0)}</div></div>
+    <div class="stat s-green"><div class="stat-lbl">${t('tgStatMeeting')}</div><div class="stat-val">${onTarget}</div><div class="stat-sub">/ ${procs.length}</div></div>
+    <div class="stat s-red"><div class="stat-lbl">${t('tgStatBelow')}</div><div class="stat-val">${farBelow}</div><div class="stat-sub">/ ${procs.length}</div></div>
   `;
 
   // Summary table (single day)
@@ -1162,11 +1446,11 @@ function renderTarget() {
   tbody.innerHTML = '';
   for (const p of procs) {
     let badge, rowBg = '';
-    if (p.sched === 0)    { badge = '<span class="badge b-neutral">No Data</span>'; }
-    else if (p.pct >= 100){ badge = `<span class="badge b-ok">✓ On Target</span>`; rowBg = 'background:rgba(46,125,50,0.06)'; }
-    else if (p.pct >= 90) { badge = `<span class="badge b-ok">✓ Near Target</span>`; rowBg = 'background:rgba(46,125,50,0.06)'; }
-    else if (p.pct >= 50) { badge = `<span class="badge b-warn">⚠ Below Target</span>`; rowBg = 'background:rgba(198,40,40,0.08)'; }
-    else                  { badge = `<span class="badge b-overdue">✗ Far Below</span>`; rowBg = 'background:rgba(198,40,40,0.15)'; }
+    if (p.sched === 0)    { badge = `<span class="badge b-neutral">${t('tgNoData')}</span>`; }
+    else if (p.pct >= 100){ badge = `<span class="badge b-ok">${t('tgOnTarget')}</span>`; rowBg = 'background:rgba(46,125,50,0.06)'; }
+    else if (p.pct >= 90) { badge = `<span class="badge b-ok">${t('tgNearTarget')}</span>`; rowBg = 'background:rgba(46,125,50,0.06)'; }
+    else if (p.pct >= 50) { badge = `<span class="badge b-warn">${t('tgBelow')}</span>`; rowBg = 'background:rgba(198,40,40,0.08)'; }
+    else                  { badge = `<span class="badge b-overdue">${t('tgFarBelow')}</span>`; rowBg = 'background:rgba(198,40,40,0.15)'; }
     const diffColor = p.sched>0 && p.diff<0 ? 'color:var(--red);font-weight:700' : p.diff>0 ? 'color:var(--green);font-weight:700' : '';
     tbody.insertAdjacentHTML('beforeend',`
       <tr style="${rowBg}">
@@ -1201,8 +1485,8 @@ function renderTgHeatmap() {
 
   // Header: Process | Target | Day1 | Day2 ...
   let headHtml = '<tr>'
-    + '<th style="position:sticky;left:0;background:#f8fafc;min-width:160px">Process</th>'
-    + '<th style="position:sticky;left:160px;background:#e3f2fd;color:var(--blue);min-width:80px">Target</th>';
+    + '<th style="position:sticky;left:0;background:#f8fafc;min-width:160px">'+t('tgProcess')+'</th>'
+    + '<th style="position:sticky;left:160px;background:#e3f2fd;color:var(--blue);min-width:80px">'+t('tgDailyTarget')+'</th>';
   for (const b of buckets)
     headHtml += `<th>${b.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</th>`;
   headHtml += '</tr>';
@@ -1239,15 +1523,644 @@ function tgToggle(mode) {
 }
 
 // ═══════════════════════════════════════════════════════
+//  SCENARIO PLANNER
+// ═══════════════════════════════════════════════════════
+
+const SC = { changes: new Map(), allOrders: [] };
+
+function initScenario() {
+  if (!G.orders.length) return;
+  if (!document.getElementById('sc-date').value) {
+    const tgDate = document.getElementById('tg-date').value;
+    setDI('sc-date', tgDate || ymd(new Date()));
+  }
+  SC.allOrders = G.orders
+    .filter(o => o.exFactory)
+    .sort((a,b) => {
+      // Late orders (isOverdue) first, then by ex-factory date
+      if (a.isOverdue && !b.isOverdue) return -1;
+      if (!a.isOverdue && b.isOverdue) return 1;
+      return a.exFactory - b.exFactory;
+    });
+  scFilterOrders();
+  renderSelectedList();
+}
+
+function scReset() {
+  SC.changes.clear();
+  renderSelectedList();
+  scFilterOrders();
+  document.getElementById('sc-results-wrap').style.display='none';
+  document.getElementById('sc-no-results').style.display='block';
+  document.getElementById('sc-stats').innerHTML='';
+}
+
+function scFilterOrders() {
+  const q = (document.getElementById('sc-search').value||'').trim().toLowerCase();
+  const list = q
+    ? SC.allOrders.filter(o=>o.partNumber.toLowerCase().includes(q))
+    : SC.allOrders.slice(0, 120);
+
+  const el = document.getElementById('sc-order-list');
+  if (!list.length) { el.innerHTML='<div style="padding:14px;color:var(--muted);font-size:.8rem;text-align:center">No matches</div>'; return; }
+
+  // Split into late and on-track
+  const late    = list.filter(o => o.isOverdue);
+  const ontrack = list.filter(o => !o.isOverdue);
+
+  function renderRow(o) {
+    const added = SC.changes.has(o.partNumber);
+    const lateBadge = o.isOverdue ? '<span style="background:#ffebee;color:var(--red);font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:10px;margin-right:4px">LATE</span>' : '';
+    return `<div class="sc-order-row ${added?'added':''}" data-pn="${esc(o.partNumber)}" onclick="scOrderRowClick(this)">
+      <span style="flex:1;font-weight:${added?'600':'400'}">${lateBadge}${esc(o.partNumber)}</span>
+      <span style="font-size:.72rem;color:var(--muted)">${fmtS(o.exFactory)}</span>
+      ${added ? '<span style="color:var(--green);font-size:.72rem;font-weight:700">✓ Added</span>' : '<span style="color:var(--blue);font-size:.72rem">+ Add</span>'}
+    </div>`;
+  }
+
+  let html = '';
+  if (late.length) {
+    html += `<div style="padding:6px 14px 4px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--red);background:#ffebee;border-bottom:1px solid #ffcdd2">⚠ Already Late (${late.length})</div>`;
+    html += late.map(renderRow).join('');
+  }
+  if (ontrack.length) {
+    if (late.length) html += `<div style="padding:6px 14px 4px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:#f8fafc;border-bottom:1px solid var(--border)">On Track (${ontrack.length})</div>`;
+    html += ontrack.map(renderRow).join('');
+  }
+  el.innerHTML = html;
+}
+
+function scOrderRowClick(el) {
+  const pn = el.dataset.pn;
+  if (!SC.changes.has(pn)) scAddOrder(pn);
+}
+
+function scAddOrder(pn) {
+  if (!SC.changes.has(pn)) SC.changes.set(pn, { type: null, deadline: null });
+  renderSelectedList();
+  scFilterOrders();
+}
+
+function scRemoveOrder(pn) {
+  SC.changes.delete(pn);
+  renderSelectedList();
+  scFilterOrders();
+}
+
+function scClearAll() {
+  SC.changes.clear();
+  renderSelectedList();
+  scFilterOrders();
+}
+
+function scSetType(pn, type) {
+  const c = SC.changes.get(pn);
+  if (!c) return;
+  c.type = c.type === type ? null : type;
+  if (c.type !== 'date') c.deadline = null;
+  renderSelectedList();
+}
+
+function scSetDeadline(pn, val) {
+  const c = SC.changes.get(pn);
+  if (!c) return;
+  c.deadline = val ? new Date(val+'T00:00:00') : null;
+}
+
+function renderSelectedList() {
+  document.getElementById('sc-count').textContent = SC.changes.size;
+  const el = document.getElementById('sc-selected-list');
+  if (!SC.changes.size) {
+    el.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem">No orders added yet.<br>Search and click an order above.</div>';
+    return;
+  }
+  let html = '';
+  let idx = 0;
+  for (const [pn, c] of SC.changes) {
+    const order = SC.allOrders.find(o=>o.partNumber===pn);
+    const exFac = order ? fmtS(order.exFactory) : '–';
+    html += `<div class="sc-selected-row" data-scidx="${idx}">
+      <div style="display:flex;align-items:center">
+        <span class="pn">${esc(pn)}</span>
+        <span style="font-size:.72rem;color:var(--muted);margin-left:8px">Ex-factory: ${exFac}</span>
+        <button class="sc-remove" data-scidx="${idx}" data-action="remove" title="Remove">✕</button>
+      </div>
+      <div class="sc-change-row">
+        <button class="sc-chip ${c.type==='urgent'?'active-urgent':''}" data-scidx="${idx}" data-action="urgent">🚨 Urgent — ASAP</button>
+        <button class="sc-chip ${c.type==='date'?'active-date':''}" data-scidx="${idx}" data-action="date">📅 Must complete by</button>
+        ${c.type==='date' ? `<input type="date" class="sc-date-inp" data-scidx="${idx}" data-action="deadline" value="${c.deadline?ymd(c.deadline):''}">` : ''}
+      </div>
+      ${!c.type ? '<div style="font-size:.72rem;color:var(--amber);margin-top:4px">⚠ Select a change type above</div>' : ''}
+    </div>`;
+    idx++;
+  }
+  el.innerHTML = html;
+
+  // Wire up events via delegation
+  el.querySelectorAll('[data-action]').forEach(btn => {
+    const i = parseInt(btn.dataset.scidx);
+    const pnKey = [...SC.changes.keys()][i];
+    const action = btn.dataset.action;
+    if (action==='remove')   btn.addEventListener('click', ()=>{ scRemoveOrder(pnKey); });
+    if (action==='urgent')   btn.addEventListener('click', ()=>{ scSetType(pnKey,'urgent'); });
+    if (action==='date')     btn.addEventListener('click', ()=>{ scSetType(pnKey,'date'); });
+    if (action==='deadline') btn.addEventListener('change', e=>{ scSetDeadline(pnKey, e.target.value); });
+  });
+}
+
+function runScenario() {
+  const dateStr = document.getElementById('sc-date').value;
+  if (!dateStr || !SC.allOrders.length) return;
+  const simStart = new Date(dateStr+'T00:00:00');
+  const CAP = PROCESS_TARGETS;
+
+  for (const [pn, c] of SC.changes) {
+    if (c.type === 'date' && !c.deadline) { alert('Please set a deadline date for: '+pn); return; }
+    if (!c.type) { alert('Please select Urgent or Must complete by for: '+pn); return; }
+  }
+
+  const urgentOrders=[], deadlineOrders=[], normalOrders=[];
+  for (const o of SC.allOrders) {
+    const c = SC.changes.get(o.partNumber);
+    if (c && c.type==='urgent')       urgentOrders.push({...o,_change:c});
+    else if (c && c.type==='date')    deadlineOrders.push({...o,_change:c,_effDeadline:c.deadline});
+    else                              normalOrders.push({...o,_change:null});
+  }
+  urgentOrders.sort((a,b)=>a.exFactory-b.exFactory);
+  deadlineOrders.sort((a,b)=>a._effDeadline-b._effDeadline);
+  normalOrders.sort((a,b)=>a.exFactory-b.exFactory);
+  const queue = [...urgentOrders,...deadlineOrders,...normalOrders];
+
+  function makeScheduler() {
+    const used = new Map();
+    return function scheduleOrder(order) {
+      const lotMap = new Map();
+      for (const t of order.tasks) {
+        const lid=t._lot||'x'; if(!lotMap.has(lid)) lotMap.set(lid,[]); lotMap.get(lid).push(t);
+      }
+      let latest = new Date(simStart);
+      for (const [,tasks] of lotMap) {
+        const steps = [...new Set(tasks.map(t=>t['process_name']).filter(Boolean))].sort((a,b)=>pcbRank(a)-pcbRank(b));
+        const area = tasks[0]?._area||0;
+        let cursor = new Date(simStart);
+        for (const step of steps) {
+          const daily = CAP[step]||0;
+          let rem = area;
+          if (!daily) { cursor=addDays(cursor,1); continue; }
+          while (rem>0) {
+            const dk=ymd(cursor);
+            if (!used.has(step)) used.set(step,new Map());
+            const sm=used.get(step); const u=sm.get(dk)||0;
+            const avail=Math.max(0,daily-u);
+            if (avail>0) { const c=Math.min(rem,avail); sm.set(dk,u+c); rem-=c; }
+            if (rem>0) cursor=addDays(cursor,1);
+          }
+          cursor=addDays(cursor,1);
+        }
+        if (cursor>latest) latest=cursor;
+      }
+      return latest;
+    };
+  }
+
+  const schedBase = makeScheduler();
+  const baselineMap = new Map();
+  for (const o of SC.allOrders) baselineMap.set(o.partNumber, schedBase(o));
+
+  const schedSim = makeScheduler();
+  const scenarioMap = new Map();
+  for (const o of queue) scenarioMap.set(o.partNumber, schedSim(o));
+
+  const scenarioPNs = new Set(SC.changes.keys());
+  const results = [];
+  for (const o of queue) {
+    const baseline  = baselineMap.get(o.partNumber);
+    const simEnd    = scenarioMap.get(o.partNumber);
+    const deadline  = o._change?.type==='date' ? o._effDeadline : o.exFactory;
+    const shiftDays = Math.round((simEnd-baseline)/86400000);
+    const bufferDays= deadline ? Math.round((deadline-simEnd)/86400000) : null;
+    const isScenario= scenarioPNs.has(o.partNumber);
+    const isImpacted= !isScenario && shiftDays!==0;
+    if (!isScenario && !isImpacted) continue;
+    results.push({pn:o.partNumber,exFactory:o.exFactory,deadline,change:o._change,baseline,simEnd,shiftDays,bufferDays,isScenario,isImpacted});
+  }
+
+  renderScenarioResults(results);
+}
+
+function renderScenarioResults(results) {
+  const scenarioResults = results.filter(r=>r.isScenario);
+  const impactedResults = results.filter(r=>r.isImpacted);
+
+  // Consequences = impacted orders that now miss or worsen vs baseline
+  const consequences = impactedResults.filter(r => {
+    if (r.shiftDays <= 0) return false; // not pushed out
+    // Was on time before (positive buffer based on baseline), now late or at risk
+    const baselineBuffer = r.exFactory ? Math.round((r.exFactory - r.baseline)/86400000) : null;
+    return baselineBuffer === null || r.bufferDays < baselineBuffer;
+  });
+  const newlyLate   = consequences.filter(r=>r.bufferDays!==null&&r.bufferDays<0);
+  const newlyAtRisk = consequences.filter(r=>r.bufferDays!==null&&r.bufferDays>=0&&r.bufferDays<=3);
+
+  const onTime  = scenarioResults.filter(r=>r.bufferDays!==null&&r.bufferDays>3).length;
+  const atRisk  = scenarioResults.filter(r=>r.bufferDays!==null&&r.bufferDays>=0&&r.bufferDays<=3).length;
+  const missing = scenarioResults.filter(r=>r.bufferDays!==null&&r.bufferDays<0).length;
+
+  document.getElementById('sc-stats').innerHTML=`
+    <div class="stat s-green"><div class="stat-lbl">Scenario On Time</div><div class="stat-val">${onTime}</div><div class="stat-sub">of ${scenarioResults.length} changed orders</div></div>
+    <div class="stat s-amber"><div class="stat-lbl">Scenario At Risk</div><div class="stat-val">${atRisk}</div><div class="stat-sub">≤ 3 days buffer</div></div>
+    <div class="stat s-red"><div class="stat-lbl">Scenario Will Miss</div><div class="stat-val">${missing}</div><div class="stat-sub">deadline</div></div>
+    <div class="stat s-red"><div class="stat-lbl">Newly Late (Consequence)</div><div class="stat-val">${newlyLate.length}</div><div class="stat-sub">${newlyAtRisk.length} more now at risk</div></div>`;
+
+  function renderRows(list, tbody) {
+    tbody.innerHTML='';
+    for (const r of list) {
+      let sc,sl;
+      if (r.bufferDays===null)     {sc='#90a4ae';sl='No date';}
+      else if (r.bufferDays>3)     {sc='var(--green)';sl='✓ On time';}
+      else if (r.bufferDays>=0)    {sc='var(--amber)';sl='⚠ At risk';}
+      else                          {sc='var(--red)';sl='✗ '+Math.abs(r.bufferDays)+'d late';}
+      const changeLabel=r.change?.type==='urgent'?'<span class="badge b-overdue">🚨 Urgent</span>':r.change?.type==='date'?'<span class="badge b-blue">📅 New deadline</span>':'<span class="badge b-warn">↕ Pushed out</span>';
+      const shiftColor=r.shiftDays>0?'color:var(--red)':r.shiftDays<0?'color:var(--green)':'color:var(--muted)';
+      const shiftStr=r.shiftDays===0?'—':(r.shiftDays>0?'+':'')+r.shiftDays+'d';
+      tbody.insertAdjacentHTML('beforeend',`<tr class="${r.isScenario?'sc-scenario-row':'sc-impacted-row'}">
+        <td style="font-weight:700">${esc(r.pn)}</td>
+        <td>${changeLabel}</td>
+        <td class="num">${fmtS(r.deadline)}</td>
+        <td class="num" style="color:var(--muted)">${fmtS(r.baseline)}</td>
+        <td class="num" style="font-weight:600">${fmtS(r.simEnd)}</td>
+        <td class="num" style="${shiftColor};font-weight:700">${shiftStr}</td>
+        <td class="num" style="color:${sc};font-weight:700">${r.bufferDays!==null?(r.bufferDays>=0?'+':'')+r.bufferDays+'d':'–'}</td>
+        <td><span class="badge" style="background:${sc}22;color:${sc};border:1px solid ${sc}55">${sl}</span></td>
+      </tr>`);
+    }
+  }
+
+  // Scenario orders table
+  const scenTbody = document.getElementById('sc-results-body');
+  renderRows(scenarioResults, scenTbody);
+
+  // Consequences section
+  const consWrap = document.getElementById('sc-consequences-wrap');
+  const consTbody = document.getElementById('sc-consequences-body');
+  const consTitle = document.getElementById('sc-consequences-title');
+  if (consequences.length) {
+    consTitle.textContent = `Consequences — ${consequences.length} order${consequences.length!==1?'s':''} delayed by this scenario (${newlyLate.length} now late, ${newlyAtRisk.length} now at risk)`;
+    renderRows(consequences, consTbody);
+    consWrap.style.display='block';
+  } else {
+    consWrap.style.display='none';
+  }
+
+  document.getElementById('sc-results-wrap').style.display='block';
+  document.getElementById('sc-no-results').style.display='none';
+}
+
+function scExport() {
+  const rows=[['Part Number','Change','Deadline','Baseline End','Sim End','Shift (days)','Buffer (days)','Status']];
+  document.querySelectorAll('#sc-results-body tr').forEach(tr=>{
+    const cells=[...tr.querySelectorAll('td')].map(td=>td.textContent.trim());
+    if(cells.length) rows.push([cells[1],cells[2],cells[3],cells[4],cells[5],cells[6],cells[7],cells[8]]);
+  });
+  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='scenario_'+ymd(new Date())+'.csv'; a.click();
+}
+
+function renderScenarioLang() {
+  // Update static labels via data-i (applyTranslations handles data-i elements)
+  // Re-render dynamic content that has hardcoded strings
+  renderSelectedList();
+  // Update results table headers if visible
+  const wrap = document.getElementById('sc-results-wrap');
+  if (wrap && wrap.style.display !== 'none') {
+    // Update column headers
+    const headers = wrap.querySelectorAll('thead th');
+    const keys = ['scPN','scChange','scDeadline','scBaseline','scSimEnd','scShift','scBuffer','scOutcome'];
+    headers.forEach((th,i) => { if(keys[i]) th.textContent = t(keys[i]); });
+  }
+  // Update no-results placeholder
+  const nr = document.getElementById('sc-no-results');
+  if (nr) nr.innerHTML = `Add orders on the left, configure changes, then click <strong>${t('scRun')}</strong>.`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  EQUIPMENT OEE
+// ═══════════════════════════════════════════════════════
+function eqQuick(key) {
+  const today=dayOf(new Date()); let s,e;
+  if(key==='today'){s=today;e=today;}
+  else if(key==='week'){s=today;e=addDays(today,6);}
+  else if(key==='2w'){s=today;e=addDays(today,13);}
+  else{s=today;e=addDays(today,29);}
+  setDI('eq-from',ymd(s)); setDI('eq-to',ymd(e));
+  renderEquipment();
+}
+
+// Merge overlapping intervals → [{s,e}]
+function mergeIntervals(intervals) {
+  if (!intervals.length) return [];
+  const sorted = intervals.slice().sort((a,b)=>a.s-b.s);
+  const merged = [{...sorted[0]}];
+  for (let i=1;i<sorted.length;i++) {
+    const last=merged[merged.length-1];
+    if (sorted[i].s<=last.e) last.e=Math.max(last.e,sorted[i].e);
+    else merged.push({...sorted[i]});
+  }
+  return merged;
+}
+
+function mergedFabMs(intervals, winS, winE) {
+  let ms=0;
+  for (const iv of intervals) {
+    const s=Math.max(iv.s,winS), e=Math.min(iv.e,winE);
+    if (e>s) ms+=(e-s);
+  }
+  return ms;
+}
+
+// Timeline SVG bar
+function buildTimeline(intervals, winS, winE, slotMs) {
+  const totalMs=winE-winS;
+  const numSlots=Math.ceil(totalMs/slotMs);
+  const W=520, H=18;
+  const slotW=W/numSlots;
+  const slots=new Uint8Array(numSlots);
+  for (const iv of intervals) {
+    const s=Math.max(iv.s,winS), e=Math.min(iv.e,winE);
+    if (e<=s) continue;
+    const s0=Math.floor((s-winS)/slotMs), e0=Math.ceil((e-winS)/slotMs);
+    for (let i=s0;i<Math.min(e0,numSlots);i++) slots[i]=1;
+  }
+  let rects='';
+  let i=0;
+  while (i<numSlots) {
+    const val=slots[i]; let j=i+1;
+    while (j<numSlots&&slots[j]===val) j++;
+    const x=(i*slotW).toFixed(2), w=((j-i)*slotW).toFixed(2);
+    rects+=`<rect x="${x}" y="0" width="${w}" height="${H}" fill="${val?'#2e7d32':'#e0e5ec'}"/>`;
+    i=j;
+  }
+  let dividers='';
+  const numDays=Math.ceil(totalMs/86400000);
+  for (let d=1;d<numDays;d++) {
+    const x=(d*86400000/totalMs*W).toFixed(2);
+    dividers+=`<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="#fff" stroke-width="1.5"/>`;
+  }
+  // Day labels
+  let labels='';
+  for (let d=0;d<numDays;d++) {
+    const x=(d*86400000/totalMs*W+2).toFixed(2);
+    const dayDate=new Date(winS+d*86400000);
+    const lbl=pad(dayDate.getMonth()+1)+'/'+pad(dayDate.getDate());
+    labels+=`<text x="${x}" y="${H-4}" font-size="8" fill="#fff" opacity="0.8">${lbl}</text>`;
+  }
+  return `<svg width="${W}" height="${H}" style="border-radius:3px;display:block">${rects}${dividers}${labels}</svg>`;
+}
+
+// Detect A→B→A batching issues — only for drilling
+const DRILLING_PROCS = new Set(['钻孔','二钻','CCD钻靶']);
+
+function detectBatchingIssues(tasks) {
+  const sorted = tasks.filter(r=>r._start&&r['part number']).sort((a,b)=>a._start-b._start);
+  const issues = []; // {pn, splitAt: [taskIdx,...]}
+  const seenAt = new Map(); // pn → last index seen
+  const splits = new Map(); // pn → [{interruptedBy, task}]
+
+  for (let i=0;i<sorted.length;i++) {
+    const pn=sorted[i]['part number']||'';
+    if (seenAt.has(pn)) {
+      const lastIdx=seenAt.get(pn);
+      if (lastIdx < i-1) {
+        // Something else ran between last pn and now
+        if (!splits.has(pn)) splits.set(pn,[]);
+        const interruptors=[...new Set(sorted.slice(lastIdx+1,i).map(t=>t['part number']||''))];
+        splits.get(pn).push({task:sorted[i], interruptors});
+      }
+    }
+    seenAt.set(pn,i);
+  }
+  return splits;
+}
+
+function calcChangeovers(tasks) {
+  const sorted=tasks.filter(r=>r._start).sort((a,b)=>a._start-b._start);
+  let co=0, lastPN=null;
+  for (const r of sorted) {
+    const pn=r['part number']||'';
+    if (lastPN!==null&&pn!==lastPN) co++;
+    lastPN=pn;
+  }
+  return co;
+}
+
+function renderEquipment() {
+  // Guard: don't run if data not loaded or DOM elements missing
+  if (!G.rows || !G.rows.length) return;
+  const cntEl=document.getElementById('eq-cnt');
+  const statsEl=document.getElementById('eq-stats');
+  const tbodyEl=document.getElementById('eq-body');
+  if (!cntEl||!statsEl||!tbodyEl) return;
+
+  const fromStr=document.getElementById('eq-from').value;
+  const toStr  =document.getElementById('eq-to').value;
+  const qProc  =(document.getElementById('eq-proc').value||'').trim().toLowerCase();
+  if (!fromStr||!toStr) return;
+
+  const from=new Date(fromStr+'T00:00:00'), to=new Date(toStr+'T00:00:00');
+  // winS = start of first day, winE = start of day AFTER last day (exclusive)
+  // This makes availMs exactly numDays * 86400000 with no rounding issues
+  const winS=from.getTime();
+  const winE=addDays(to,1).getTime();
+  const numDays=Math.round((winE-winS)/86400000);
+  const availMs=numDays*86400000;
+  const availHrs=availMs/3600000;
+  const slotMs=numDays<=14?15*60000:numDays<=60?3600000:4*3600000;
+  const slotLabel=slotMs>=3600000?(slotMs/3600000)+'h':(slotMs/60000)+'min';
+
+  // Only include rows that overlap the selected window (started or ended within it)
+  const rows=G.rows.filter(r=>r._start&&r._end&&r['Station']&&r._start.getTime()<winE&&r._end.getTime()>winS);
+
+  const procMap=new Map();
+  for (const r of rows) {
+    const proc=r['process_name']||'Unknown';
+    const stn =r['Station']||'Unknown';
+    if (!procMap.has(proc)) procMap.set(proc,new Map());
+    if (!procMap.get(proc).has(stn)) procMap.get(proc).set(stn,[]);
+    procMap.get(proc).get(stn).push(r);
+  }
+
+  let procs=[...procMap.entries()].map(([proc,stnMap])=>{
+    const isDrilling=DRILLING_PROCS.has(proc);
+    const stations=[...stnMap.entries()].map(([stn,tasks])=>{
+      const iv=tasks.filter(r=>r._start&&r._end).map(r=>({s:r._start.getTime(),e:r._end.getTime()}));
+      const merged=mergeIntervals(iv);
+      const fabMs=mergedFabMs(merged,winS,winE);
+      const fabHrs=fabMs/3600000;
+      const idleHrs=Math.max(0,availHrs-fabHrs);
+      const oee=Math.min(100,Math.round(fabMs/availMs*100));
+      const uniquePNs=new Set(tasks.map(r=>r['part number']).filter(Boolean)).size;
+      const changeovers=calcChangeovers(tasks);
+      const batchIssues=isDrilling?detectBatchingIssues(tasks):new Map();
+      return {stn,tasks,merged,fabHrs,idleHrs,oee,uniquePNs,changeovers,batchIssues,isDrilling};
+    }).sort((a,b)=>a.stn.localeCompare(b.stn));
+
+    const allTasks=[...stnMap.values()].flat();
+    const allIv=allTasks.filter(r=>r._start&&r._end).map(r=>({s:r._start.getTime(),e:r._end.getTime()}));
+    const procFabMs=mergedFabMs(mergeIntervals(allIv),winS,winE);
+    const procOee=Math.min(100,Math.round(procFabMs/availMs*100));
+    const hasBatching=isDrilling&&stations.some(s=>s.batchIssues.size>0);
+    return {proc,stations,procOee,hasBatching,isDrilling,rank:pcbRank(proc)};
+  }).sort((a,b)=>a.rank!==b.rank?a.rank-b.rank:a.proc.localeCompare(b.proc));
+
+  if (qProc) procs=procs.filter(p=>p.proc.toLowerCase().includes(qProc));
+
+  const allStations=procs.flatMap(p=>p.stations);
+  cntEl.textContent=procs.length+' processes · '+allStations.length+' stations';
+
+  const avgOEE =allStations.length?Math.round(allStations.reduce((s,st)=>s+st.oee,0)/allStations.length):0;
+  const highOEE=allStations.filter(s=>s.oee>=80).length;
+  const lowOEE =allStations.filter(s=>s.oee<50).length;
+  const totBatch=procs.filter(p=>p.hasBatching).length;
+  statsEl.innerHTML=`
+    <div class="stat s-blue"><div class="stat-lbl">${t('eqAvgOEE')}</div><div class="stat-val">${avgOEE}%</div><div class="stat-sub">${allStations.length} ${t('eqStations')} · ${numDays}d</div></div>
+    <div class="stat s-green"><div class="stat-lbl">${t('eqHighOEE')}</div><div class="stat-val">${highOEE}</div><div class="stat-sub">${t('eqStations')}</div></div>
+    <div class="stat s-red"><div class="stat-lbl">${t('eqLowOEE')}</div><div class="stat-val">${lowOEE}</div><div class="stat-sub">${t('eqStations')}</div></div>
+    <div class="stat s-amber"><div class="stat-lbl">${t('eqBatch')}</div><div class="stat-val">${totBatch}</div><div class="stat-sub">drilling ${t('eqProcesses')}</div></div>
+  `;
+
+  tbodyEl.innerHTML='';
+
+  for (const p of procs) {
+    const procOeeColor=p.procOee>=80?'var(--green)':p.procOee>=50?'var(--amber)':'var(--red)';
+    const batchBadge=p.hasBatching
+      ?`<span class="badge" style="background:#fff3e0;color:var(--amber);border:1px solid #ffcc80;margin-left:6px">⚡ Batch opp.</span>`:'';
+
+    tbodyEl.insertAdjacentHTML('beforeend',`
+      <tr style="background:#f0f4f8;border-top:2px solid var(--border)">
+        <td colspan="10" style="padding:7px 14px">
+          <span style="font-weight:800;font-size:.84rem;color:var(--hdr)">${esc(p.proc)}</span>
+          ${batchBadge}
+          <span style="font-size:.74rem;color:var(--muted);margin-left:8px">${p.stations.length} station${p.stations.length!==1?'s':''}</span>
+          <span style="font-size:.74rem;font-weight:700;color:${procOeeColor};margin-left:8px">${t('eqProcOEE')} ${p.procOee}%</span>
+        </td>
+      </tr>
+    `);
+
+    for (const s of p.stations) {
+      const rowId=uid();
+      const oeeColor=s.oee>=80?'var(--green)':s.oee>=50?'var(--amber)':'var(--red)';
+      const coBadge=s.changeovers===0
+        ?`<span class="badge b-ok">0</span>`
+        :s.changeovers<=3
+          ?`<span class="badge b-warn">${s.changeovers}</span>`
+          :`<span class="badge b-overdue">${s.changeovers}</span>`;
+      const hasBatch=s.isDrilling&&s.batchIssues.size>0;
+      const stnBatchBadge=hasBatch
+        ?`<span class="badge" style="background:#fff3e0;color:var(--amber);border:1px solid #ffcc80;margin-left:5px">⚡</span>`:'';
+      const oeeBar=`<div style="height:8px;border-radius:4px;overflow:hidden;width:70px;background:#eceff1;display:inline-block;vertical-align:middle;margin-right:4px"><div style="width:${s.oee}%;height:100%;background:${oeeColor}"></div></div>`;
+
+      tbodyEl.insertAdjacentHTML('beforeend',`
+        <tr class="eq-stn-row${hasBatch?' eq-batch':''}" onclick="eqToggle('${rowId}')">
+          <td><button class="xbtn" id="xbtn-${rowId}">+</button></td>
+          <td style="font-weight:700;padding-left:22px">${esc(s.stn)}${stnBatchBadge}</td>
+          <td class="num">${fmtN(s.tasks.length)}</td>
+          <td class="num">${fmtN(s.uniquePNs)}</td>
+          <td class="num">${coBadge}</td>
+          <td class="num">${fmtN(s.fabHrs,1)}</td>
+          <td class="num" style="color:var(--muted)">${fmtN(s.idleHrs,1)}</td>
+          <td class="num" style="color:${oeeColor};font-weight:700">${s.oee}%</td>
+          <td colspan="2">${oeeBar}<span style="font-size:.72rem;color:${oeeColor};font-weight:700;vertical-align:middle">${s.oee}%</span></td>
+        </tr>
+        <tr id="xrow-${rowId}" style="display:none">
+          <td colspan="10" style="padding:0;border-bottom:2px solid var(--blue-lt)">
+            <div id="xinner-${rowId}" style="padding:14px 18px 14px 36px;background:#fafcff"></div>
+          </td>
+        </tr>
+      `);
+      // Inject detail content separately to avoid SVG breaking template literal
+      document.getElementById('xinner-'+rowId).innerHTML = buildStationDetail(s,winS,winE,slotMs,slotLabel,numDays);
+    }
+  }
+}
+
+function eqToggle(rowId) {
+  const xrow=document.getElementById('xrow-'+rowId);
+  const btn =document.getElementById('xbtn-'+rowId);
+  if (!xrow||!btn) return;
+  const open=xrow.style.display==='none';
+  xrow.style.display=open?'table-row':'none';
+  btn.textContent=open?'−':'+';
+}
+
+function buildStationDetail(s, winS, winE, slotMs, slotLabel, numDays) {
+  const oeeColor=s.oee>=80?'var(--green)':s.oee>=50?'var(--amber)':'var(--red)';
+  const timeline=buildTimeline(s.merged,winS,winE+1,slotMs);
+  const hasBatch=s.isDrilling&&s.batchIssues.size>0;
+
+  let html=`
+    <div style="margin-bottom:${hasBatch?'14':'4'}px">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">
+        Timeline — ${numDays}d · ${slotLabel} slots ·
+        <span style="color:${oeeColor}">${s.oee}% OEE</span> ·
+        ${fmtN(s.fabHrs,1)}h fab ·
+        <span style="color:var(--muted)">${fmtN(s.idleHrs,1)}h idle</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        ${timeline}
+        <div style="font-size:.68rem;color:var(--muted);line-height:2">
+          <span style="display:inline-block;width:10px;height:10px;background:#2e7d32;border-radius:2px;margin-right:3px;vertical-align:middle"></span>${t('eqScheduled')}  
+          <span style="display:inline-block;width:10px;height:10px;background:#e0e5ec;border-radius:2px;margin-right:3px;vertical-align:middle"></span>${t('eqIdle')}
+        </div>
+      </div>
+    </div>`;
+
+  if (!hasBatch) return html;
+
+  const sorted=s.tasks.filter(r=>r._start&&r['part number']).sort((a,b)=>a._start-b._start);
+  const affectedPNs=new Set(s.batchIssues.keys());
+  const pnList=[...s.batchIssues.keys()].map(pn=>{
+    const count=s.batchIssues.get(pn).length;
+    return `<span style="background:#fff3e0;color:var(--amber);border:1px solid #ffcc80;border-radius:4px;padding:2px 8px;font-size:.72rem;font-weight:700;margin-right:4px">⚡ ${esc(pn)} — ${count} split${count>1?'s':''}</span>`;
+  }).join('');
+
+  const schedRows=sorted.map((r,i)=>{
+    const pn=r['part number']||'';
+    const isAffected=affectedPNs.has(pn);
+    const isSplit=isAffected&&s.batchIssues.has(pn)&&s.batchIssues.get(pn).some(sp=>sp.task===r);
+    const prevPN=i>0?sorted[i-1]['part number']||'':'';
+    const isChangeover=i>0&&pn!==prevPN;
+    return `${isChangeover?`<tr style="background:#fff8e1"><td colspan="5" style="padding:3px 10px;font-size:.68rem;color:var(--amber);font-weight:700">↕ Changeover: ${esc(prevPN)} → ${esc(pn)}</td></tr>`:''}
+    <tr style="${isSplit?'background:#fff3e0;':''}">
+      <td style="font-family:monospace;font-size:.75rem">${fmtDt(r._start)}</td>
+      <td style="font-family:monospace;font-size:.75rem">${fmtDt(r._end)}</td>
+      <td style="font-weight:${isAffected?'700':'400'};color:${isAffected?'var(--amber)':'inherit'}">${esc(pn)}${isSplit?` <span class="badge b-warn">⚡ split</span>`:''}</td>
+      <td class="num" style="font-size:.75rem">${fmtN(r._area||0,0)}</td>
+      <td style="font-size:.72rem;color:var(--muted)">${esc(r['order_type']||'')}</td>
+    </tr>`;
+  }).join('');
+
+  html+=`
+    <div style="background:#fffde7;border:1px solid #ffe082;border-radius:6px;padding:12px 14px">
+      <div style="font-size:.75rem;font-weight:700;color:var(--amber);margin-bottom:6px">${t('eqBatchOpp')}</div>
+      <div style="margin-bottom:8px">${pnList}</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:10px">${t('eqBatchDesc')}</div>
+      <div class="tbl-scr"><table style="font-size:.78rem">
+        <thead><tr><th>Start</th><th>End</th><th>Part Number</th><th class="num">Area</th><th>Type</th></tr></thead>
+        <tbody>${schedRows}</tbody>
+      </table></div>
+    </div>`;
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════
 //  UTILS
 // ═══════════════════════════════════════════════════════
-// Sum lot area once per unique lot ID (avoids multiplying area by step count)
 function lotAreaSum(rows) {
   const seen = new Map();
   for (const r of rows) { if (!seen.has(r._lot)) seen.set(r._lot, r._area); }
   return [...seen.values()].reduce((s,v)=>s+v, 0);
 }
-
 let _n=0;
 function uid(){ return 'r'+(++_n); }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }

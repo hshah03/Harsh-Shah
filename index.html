@@ -74,6 +74,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .chip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
 .chip.on-red{background:var(--red);color:#fff;border-color:var(--red)}
 .chip.on-green{background:var(--green);color:#fff;border-color:var(--green)}
+.chip.on-amber{background:var(--amber);color:#fff;border-color:var(--amber)}
 .ml-a{margin-left:auto}
 .row-count{font-size:.75rem;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:20px;white-space:nowrap}
 
@@ -212,6 +213,7 @@ tbody td.wrap{white-space:normal;max-width:280px}
           <button class="chip on" data-s="all" onclick="ovStatus(this)" data-i="all">All</button>
           <button class="chip" data-s="overdue" onclick="ovStatus(this)" data-i="overdue">Overdue</button>
           <button class="chip" data-s="ok" onclick="ovStatus(this)" data-i="onTrack">On Track</button>
+          <button class="chip" data-s="urgent" onclick="ovStatus(this)" data-i="urgentOrders">🚨 Urgent</button>
         </div>
         <span class="row-count ml-a" id="ov-cnt">—</span>
       </div>
@@ -367,6 +369,7 @@ const TRANS = {
     colOverdue:'Overdue Tasks', colStatus:'Status',
     statTotal:'Total Orders', statOverdue:'Overdue Orders',
     statOk:'On Track', statProc:'Processes Involved',
+    statUrgent:'Urgent Orders', statAllUrgent:'fully urgent',
     statTasks:'Tasks in Range', statArea:'Total Area (m²)',
     statOverdueTasks:'Overdue Tasks', statActiveProc:'Active Processes',
     from:'From', to:'To', quick:'Quick', process:'Process',
@@ -378,7 +381,7 @@ const TRANS = {
     routeLabel:'Production Route', lotsLabel:'Lots',
     lotId:'Lot ID', currentStep:'Current Step', estEnd:'Est. Completion', lotStatus:'Status',
     badgeOverdue:'⚠ Overdue', badgeOk:'✓ On Track', badgeLate:'Late', badgeGood:'OK',
-    allUrgent:'ALL URGENT', urgent:'Urgent',
+    allUrgent:'ALL URGENT', urgent:'Urgent', urgentOrders:'🚨 Urgent',
     uniqueParts:'unique part numbers', ofTotal:'of total',
   },
   zh: {
@@ -396,6 +399,7 @@ const TRANS = {
     colOverdue:'逾期任务', colStatus:'状态',
     statTotal:'订单总数', statOverdue:'逾期订单',
     statOk:'正常订单', statProc:'涉及工序',
+    statUrgent:'紧急订单', statAllUrgent:'全部紧急',
     statTasks:'区间任务数', statArea:'总面积（m²）',
     statOverdueTasks:'逾期任务数', statActiveProc:'活跃工序',
     from:'开始日期', to:'结束日期', quick:'快选', process:'工序',
@@ -407,7 +411,7 @@ const TRANS = {
     routeLabel:'生产路线', lotsLabel:'批次',
     lotId:'批次编号', currentStep:'当前工序', estEnd:'预计完成时间', lotStatus:'状态',
     badgeOverdue:'⚠ 逾期', badgeOk:'✓ 正常', badgeLate:'逾期', badgeGood:'正常',
-    allUrgent:'全部紧急', urgent:'紧急',
+    allUrgent:'全部紧急', urgent:'紧急', urgentOrders:'🚨 紧急订单',
     uniqueParts:'个唯一料号', ofTotal:'占总数',
   }
 };
@@ -617,9 +621,9 @@ function ovType(btn) {
 }
 
 function ovStatus(btn) {
-  btn.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.remove('on','on-red','on-green'));
+  btn.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.remove('on','on-red','on-green','on-amber'));
   const s=btn.dataset.s;
-  btn.classList.add(s==='overdue'?'on-red':s==='ok'?'on-green':'on');
+  btn.classList.add(s==='overdue'?'on-red':s==='ok'?'on-green':s==='urgent'?'on-amber':'on');
   G.activeStatus=s;
   renderOverview();
 }
@@ -651,6 +655,7 @@ function filteredOrders() {
   if(!G.activeTypes.has('__all__')) list=list.filter(o=>G.activeTypes.has(o.orderType));
   if(G.activeStatus==='overdue') list=list.filter(o=>o.isOverdue);
   if(G.activeStatus==='ok')      list=list.filter(o=>!o.isOverdue);
+  if(G.activeStatus==='urgent')  list=list.filter(o=>o.urgency!=='none');
   const q=(document.getElementById('ov-q').value||'').trim().toLowerCase();
   if(q) list=list.filter(o=>o.partNumber.toLowerCase().includes(q));
   return [...list].sort((a,b)=>{
@@ -677,11 +682,16 @@ function renderOverview() {
   const ontrack = list.length-overdue;
   const procs   = new Set(list.flatMap(o=>o.tasks.map(t2=>t2['process_name'])));
 
+  const urgentCount = list.filter(o=>o.urgency!=='none').length;
   document.getElementById('ov-stats').innerHTML = `
     <div class="stat s-blue"><div class="stat-lbl">${t('statTotal')}</div><div class="stat-val">${list.length}</div><div class="stat-sub">${new Set(list.map(o=>o.partNumber)).size} ${t('uniqueParts')}</div></div>
     <div class="stat s-red"><div class="stat-lbl">${t('statOverdue')}</div><div class="stat-val">${overdue}</div><div class="stat-sub">${list.length?Math.round(overdue/list.length*100):0}% ${t('ofTotal')}</div></div>
     <div class="stat s-green"><div class="stat-lbl">${t('statOk')}</div><div class="stat-val">${ontrack}</div><div class="stat-sub">${list.length?Math.round(ontrack/list.length*100):0}% ${t('ofTotal')}</div></div>
-    <div class="stat s-amber"><div class="stat-lbl">${t('statProc')}</div><div class="stat-val">${procs.size}</div><div class="stat-sub">&nbsp;</div></div>
+    <div class="stat s-amber" style="cursor:pointer" onclick="document.querySelector('[data-s=urgent]').click()" title="Click to filter urgent orders">
+      <div class="stat-lbl">${t('statUrgent')}</div>
+      <div class="stat-val">${urgentCount}</div>
+      <div class="stat-sub">${list.filter(o=>o.urgency==='all').length} ${t('statAllUrgent')}</div>
+    </div>
   `;
   document.getElementById('ov-cnt').textContent = list.length+' orders';
 
@@ -941,7 +951,7 @@ function renderProduction(){
 
   let procs=[...procMap.entries()].map(([name,bm])=>({
     name, bm, total:[...bm.values()].reduce((s,v)=>s+v,0), rank:pcbRank(name)
-  })).sort((a,b)=>b.total-a.total);
+  })).sort((a,b)=>a.rank!==b.rank ? a.rank-b.rank : a.name.localeCompare(b.name));
 
   if(q) procs=procs.filter(p=>p.name.toLowerCase().includes(q));
   document.getElementById('pr-cnt').textContent=procs.length+' processes';

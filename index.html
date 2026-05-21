@@ -8,70 +8,62 @@
   <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#f0f3f7;
-  --card:#fff;
-  --hdr:#0c1e32;
-  --blue:#1565c0;
-  --blue-lt:#e3f2fd;
-  --red:#c62828;
-  --red-lt:#ffebee;
-  --amber:#e65100;
-  --amber-lt:#fff3e0;
-  --green:#2e7d32;
-  --green-lt:#e8f5e9;
-  --border:#e0e5ec;
-  --text:#1a2332;
-  --muted:#546e7a;
-  --shadow:0 1px 4px rgba(0,0,0,.1);
-  --shadow-md:0 4px 14px rgba(0,0,0,.12);
-  --r:8px
+  --bg:#f0f3f7;--card:#fff;--hdr:#0c1e32;
+  --blue:#1565c0;--blue-lt:#e3f2fd;
+  --red:#c62828;--red-lt:#ffebee;
+  --amber:#e65100;--amber-lt:#fff3e0;
+  --green:#2e7d32;--green-lt:#e8f5e9;
+  --border:#e0e5ec;--text:#1a2332;--muted:#546e7a;
+  --shadow:0 1px 4px rgba(0,0,0,.1);--r:8px
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
 
-/* ── LOADING ── */
+/* LOADING */
 #loadingOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;color:#fff}
 #loadingOverlay.show{display:flex}
 .spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-msg{font-size:.9rem;opacity:.85}
 
-/* ── UPLOAD SCREEN ── */
+/* UPLOAD */
 #uploadScreen{position:fixed;inset:0;background:linear-gradient(135deg,#0c1e32 0%,#1565c0 100%);display:flex;align-items:center;justify-content:center;z-index:200}
 .upload-box{background:#fff;border-radius:16px;padding:48px 52px;max-width:480px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.35)}
 .upload-box h2{font-size:1.5rem;font-weight:800;color:var(--hdr);margin-bottom:8px}
 .upload-box p{color:var(--muted);font-size:.9rem;line-height:1.6;margin-bottom:28px}
 .drop-zone{border:2px dashed #bcd0ea;border-radius:12px;padding:36px 20px;cursor:pointer;transition:all .2s}
 .drop-zone:hover,.drop-zone.drag-over{border-color:var(--blue);background:var(--blue-lt)}
-.drop-zone .dz-icon{font-size:2.5rem;margin-bottom:8px}
+.dz-icon{font-size:2.5rem;margin-bottom:8px}
 .drop-zone p{font-size:.88rem;color:var(--muted);margin-top:6px}
 .drop-zone strong{color:var(--blue)}
 .upload-features{margin-top:22px;text-align:left}
 .upload-features li{font-size:.8rem;color:var(--muted);padding:3px 0 3px 22px;list-style:none;position:relative}
 .upload-features li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:700}
 
-/* ── HEADER ── */
+/* HEADER */
 .hdr{background:var(--hdr);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:54px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .hdr-left{display:flex;align-items:center;gap:10px}
 .hdr-left h1{font-size:.95rem;font-weight:700;letter-spacing:.02em}
 .hdr-left span{font-size:.75rem;opacity:.45;padding-left:4px}
-.hdr-right{display:flex;align-items:center;gap:12px;font-size:.78rem}
+.hdr-right{display:flex;align-items:center;gap:10px;font-size:.78rem}
 .hdr-meta{opacity:.55}
-.btn-ghost{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);color:#fff;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:.78rem;transition:background .2s}
+.btn-ghost{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);color:#fff;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:.78rem;transition:background .2s;white-space:nowrap}
 .btn-ghost:hover{background:rgba(255,255,255,.24)}
+.btn-lang{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);color:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:.78rem;font-weight:700;letter-spacing:.04em;transition:background .2s}
+.btn-lang:hover{background:rgba(255,255,255,.32)}
 
-/* ── TAB BAR ── */
+/* TAB BAR */
 .tab-bar{background:#fff;border-bottom:2px solid var(--border);display:flex;padding:0 28px;box-shadow:var(--shadow)}
 .tab-btn{padding:13px 18px;border:none;background:none;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .2s,border-color .2s;white-space:nowrap}
 .tab-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
 .tab-btn:hover:not(.active){color:var(--text)}
 
-/* ── LAYOUT ── */
+/* LAYOUT */
 #app{display:none}
 .pane{display:none}
 .pane.active{display:block}
 .page{padding:22px 28px;max-width:1700px;margin:0 auto}
 
-/* ── TOOLBAR ── */
+/* TOOLBAR */
 .toolbar{background:#fff;border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:var(--shadow);margin-bottom:18px}
 .toolbar label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);white-space:nowrap}
 .inp{padding:7px 11px;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;color:var(--text);background:#fff;min-width:140px}
@@ -85,7 +77,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .ml-a{margin-left:auto}
 .row-count{font-size:.75rem;color:var(--muted);background:var(--bg);padding:4px 10px;border-radius:20px;white-space:nowrap}
 
-/* ── STAT CARDS ── */
+/* STAT CARDS */
 .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
 .stat{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);border-left:4px solid var(--border)}
 .stat.s-blue{border-left-color:var(--blue)}
@@ -99,20 +91,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .stat.s-blue .stat-val{color:var(--blue)}
 .stat-sub{font-size:.72rem;color:var(--muted);margin-top:3px}
 
-/* ── TABLE WRAPPER ── */
+/* TABLE */
 .tbl-wrap{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}
 .tbl-scr{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:.82rem}
-thead th{padding:9px 13px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:#f8fafc;border-bottom:2px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
-thead th:hover{background:#f0f4f9}
-thead th.asc::after{content:' ↑'}
-thead th.dsc::after{content:' ↓'}
+thead th{padding:9px 13px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:#f8fafc;border-bottom:2px solid var(--border);white-space:nowrap;user-select:none}
+thead th.sortable{cursor:pointer}
+thead th.sortable:hover{background:#f0f4f9}
+/* sort icons: always show ⇅, replace with ↑↓ when active */
+thead th.sortable::after{content:' ⇅';opacity:.4;font-size:.75em}
+thead th.sortable.asc::after{content:' ↑';opacity:1;color:var(--blue)}
+thead th.sortable.dsc::after{content:' ↓';opacity:1;color:var(--blue)}
 tbody tr{border-bottom:1px solid #f0f4f8;transition:background .1s}
 tbody tr:hover{background:#f6f9ff}
 tbody td{padding:9px 13px;color:var(--text);white-space:nowrap;vertical-align:middle}
-tbody td.wrap{white-space:normal;max-width:260px}
+tbody td.wrap{white-space:normal;max-width:280px}
 
-/* ── BADGES ── */
+/* BADGES */
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
 .b-overdue{background:var(--red-lt);color:var(--red)}
 .b-ok{background:var(--green-lt);color:var(--green)}
@@ -120,348 +115,391 @@ tbody td.wrap{white-space:normal;max-width:260px}
 .b-neutral{background:#eceff1;color:#546e7a}
 .b-blue{background:var(--blue-lt);color:var(--blue)}
 
-/* ── EXPAND ROWS ── */
+/* EXPAND ROWS */
 .xbtn{background:none;border:1.5px solid var(--border);border-radius:5px;padding:2px 8px;cursor:pointer;font-size:.72rem;font-weight:700;color:var(--muted);transition:all .15s;line-height:1.4}
 .xbtn:hover{border-color:var(--blue);color:var(--blue)}
 .xrow{display:none}
 .xrow.open{display:table-row}
 .xcell{padding:0!important;border-bottom:2px solid var(--blue-lt)!important}
-.xinner{padding:14px 18px 14px 36px;background:#fafcff}
-.xinner h4{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px}
+.xinner{padding:16px 18px 16px 36px;background:#fafcff}
+.xinner-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px}
 
-/* ── FLOW GRID ── */
-.flow-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
-.fstep{border:1px solid var(--border);border-radius:6px;padding:10px 12px;background:#fff;font-size:.78rem}
-.fstep.f-late{border-color:var(--red);background:var(--red-lt)}
-.fstep.f-warn{border-color:#ffb74d;background:var(--amber-lt)}
-.fstep.f-ok{border-color:#a5d6a7;background:var(--green-lt)}
-.fstep-name{font-weight:700;margin-bottom:4px;font-size:.82rem}
-.fstep-detail{color:var(--muted);font-size:.72rem;line-height:1.6}
+/* LOT ROUTE */
+.lot-route{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:14px;padding:10px 14px;background:#fff;border-radius:6px;border:1px solid var(--border)}
+.lot-route-step{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:4px;background:var(--blue-lt);color:var(--blue)}
+.lot-route-arrow{color:var(--muted);font-size:.8rem;flex-shrink:0}
 
-/* ── MATRIX ── */
+/* MATRIX */
 .matrix-outer{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);overflow:auto;max-height:75vh}
 .mtbl{border-collapse:collapse;font-size:.78rem;width:max-content;min-width:100%}
 .mtbl th{padding:7px 11px;background:#f8fafc;border:1px solid var(--border);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);white-space:nowrap}
 .mtbl th.sticky-col{position:sticky;left:0;z-index:2;min-width:155px;text-align:left;background:#f0f4f8}
 .mtbl th.sticky-row{position:sticky;top:0;z-index:1}
 .mtbl th.sticky-both{position:sticky;left:0;top:0;z-index:3;background:#f0f4f8}
-.mtbl td{padding:6px 11px;border:1px solid #f0f4f8;text-align:right;white-space:nowrap;position:relative;min-width:72px}
+.mtbl td{padding:6px 11px;border:1px solid #f0f4f8;text-align:right;white-space:nowrap;min-width:72px}
 .mtbl td.proc-cell{position:sticky;left:0;background:#fff;font-weight:700;text-align:left;border-right:2px solid var(--border);z-index:1}
 .mtbl td.t-total{font-weight:700;background:#e8f5e9;color:var(--green)}
 .mtbl tr.r-total td{background:#f0f4f8;font-weight:700}
 .mtbl tr.r-total td.proc-cell{background:#e8eef4}
-.heat{position:absolute;inset:0;pointer-events:none}
 
-/* ── MISC ── */
+/* MISC */
 .hidden{display:none!important}
 .note{font-size:.8rem;color:var(--muted);padding:20px;text-align:center}
-@media(max-width:900px){
-  .stat-row{grid-template-columns:1fr 1fr}
-  .page{padding:14px 16px}
-}
+@media(max-width:900px){.stat-row{grid-template-columns:1fr 1fr}.page{padding:14px 16px}}
   </style>
 </head>
 <body>
 
-<!-- Loading overlay -->
 <div id="loadingOverlay">
   <div class="spinner"></div>
   <div class="loading-msg" id="loadingMsg">Loading…</div>
 </div>
 
-<!-- Upload screen -->
 <div id="uploadScreen">
   <div class="upload-box">
     <div style="font-size:3rem;margin-bottom:8px">🏭</div>
-    <h2>Production Plan Dashboard</h2>
-    <p>Upload your production schedule Excel file to view order status, process backlog, and area output across all steps.</p>
+    <h2 data-i="appTitle">Production Plan Dashboard</h2>
+    <p data-i="uploadDesc">Upload your production schedule Excel to view order status, process backlog, and area output.</p>
     <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileIn').click()">
       <div class="dz-icon">📂</div>
-      <p><strong>Click to upload</strong> or drag &amp; drop</p>
+      <p><strong data-i="clickUpload">Click to upload</strong> <span data-i="orDrop">or drag &amp; drop</span></p>
       <p style="font-size:.76rem;opacity:.6;margin-top:4px">.xlsx files only</p>
     </div>
     <ul class="upload-features">
-      <li>Overview — all orders with full process workflow drill-down</li>
-      <li>Process Backlog — workload per step filtered by date range</li>
-      <li>Production Area — expected area output by process &amp; day</li>
+      <li data-i="feat1">Overview — every order with lot-level process flow drill-down</li>
+      <li data-i="feat2">Process Backlog — workload per step, filtered by date range</li>
+      <li data-i="feat3">Production Area — expected area output by process &amp; day</li>
     </ul>
   </div>
 </div>
 <input type="file" id="fileIn" accept=".xlsx" style="display:none">
 
-<!-- Main app -->
 <div id="app">
   <header class="hdr">
     <div class="hdr-left">
-      <h1>Production Plan Dashboard <span id="hdrFile"></span></h1>
+      <h1 data-i="appTitle">Production Plan Dashboard</h1><span id="hdrFile"></span>
     </div>
     <div class="hdr-right">
       <span class="hdr-meta" id="hdrMeta"></span>
-      <button class="btn-ghost" onclick="document.getElementById('fileIn').click()">Upload New File</button>
+      <button class="btn-lang" id="langBtn" onclick="toggleLang()">中文</button>
+      <button class="btn-ghost" onclick="document.getElementById('fileIn').click()" data-i="uploadNew">Upload New File</button>
     </div>
   </header>
 
   <nav class="tab-bar">
-    <button class="tab-btn active" onclick="goTab('overview',this)">📋 Overview</button>
-    <button class="tab-btn" onclick="goTab('backlog',this)">⚙️ Process Backlog</button>
-    <button class="tab-btn" onclick="goTab('production',this)">📊 Production Area</button>
+    <button class="tab-btn active" onclick="goTab('overview',this)" data-i="tab1">📋 Overview</button>
+    <button class="tab-btn" onclick="goTab('backlog',this)" data-i="tab2">⚙️ Process Backlog</button>
+    <button class="tab-btn" onclick="goTab('production',this)" data-i="tab3">📊 Production Area</button>
   </nav>
 
-  <!-- ═══════════════════════════════════════════
-       PANE 1 — OVERVIEW
-  ═══════════════════════════════════════════ -->
+  <!-- PANE 1: OVERVIEW -->
   <div class="pane active" id="pane-overview">
     <div class="page">
-
       <div class="toolbar">
-        <label>Search</label>
-        <input class="inp" id="ov-q" placeholder="Part number…" oninput="renderOverview()" style="min-width:180px">
+        <label data-i="search">Search</label>
+        <input class="inp" id="ov-q" placeholder="PN…" oninput="renderOverview()" style="min-width:180px">
         <div class="vsep"></div>
-        <label>Order Type</label>
+        <label data-i="orderType">Order Type</label>
         <div class="chip-group" id="ov-types"></div>
         <div class="vsep"></div>
-        <label>Status</label>
+        <label data-i="status">Status</label>
         <div class="chip-group" id="ov-status-chips">
-          <button class="chip on" data-s="all" onclick="ovStatus(this)">All</button>
-          <button class="chip" data-s="overdue" onclick="ovStatus(this)">Overdue</button>
-          <button class="chip" data-s="ok" onclick="ovStatus(this)">On Track</button>
+          <button class="chip on" data-s="all" onclick="ovStatus(this)" data-i="all">All</button>
+          <button class="chip" data-s="overdue" onclick="ovStatus(this)" data-i="overdue">Overdue</button>
+          <button class="chip" data-s="ok" onclick="ovStatus(this)" data-i="onTrack">On Track</button>
         </div>
         <span class="row-count ml-a" id="ov-cnt">—</span>
       </div>
-
       <div class="stat-row" id="ov-stats"></div>
-
       <div class="tbl-wrap">
         <div class="tbl-scr">
           <table>
-            <thead id="ov-head">
-              <tr>
+            <thead>
+              <tr id="ov-head-row">
                 <th style="width:32px"></th>
-                <th onclick="ovSort('partNumber')">Part Number</th>
-                <th onclick="ovSort('orderType')">Order Type</th>
-                <th onclick="ovSort('exFactory')">Ex-Factory Date</th>
-                <th onclick="ovSort('taskCount')">Steps</th>
-                <th onclick="ovSort('minStart')">First Start</th>
-                <th onclick="ovSort('maxEnd')">Last End</th>
-                <th onclick="ovSort('maxDeadline')">Latest Deadline</th>
-                <th onclick="ovSort('overdueSteps')">Overdue Steps</th>
-                <th>Status</th>
+                <th class="sortable" data-k="partNumber" data-i="colPN">PN</th>
+                <th class="sortable" data-k="orderType" data-i="colOrderType">Order Type</th>
+                <th class="sortable" data-k="exFactory" data-i="colExFactory">Ex-Factory Date</th>
+                <th class="sortable" data-k="lotCount" data-i="colLots">Lots</th>
+                <th class="sortable" data-k="stepCount" data-i="colSteps">Steps</th>
+                <th class="sortable" data-k="maxEnd" data-i="colLastEnd">Last End</th>
+                <th class="sortable" data-k="overdueCount" data-i="colOverdue">Overdue Tasks</th>
+                <th data-i="colStatus">Status</th>
               </tr>
             </thead>
             <tbody id="ov-body"></tbody>
           </table>
         </div>
       </div>
-
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════
-       PANE 2 — PROCESS BACKLOG
-  ═══════════════════════════════════════════ -->
+  <!-- PANE 2: PROCESS BACKLOG -->
   <div class="pane hidden" id="pane-backlog">
     <div class="page">
-
       <div class="toolbar">
-        <label>From</label>
+        <label data-i="from">From</label>
         <input type="date" class="inp" id="bl-from" oninput="renderBacklog()">
-        <label>To</label>
+        <label data-i="to">To</label>
         <input type="date" class="inp" id="bl-to" oninput="renderBacklog()">
         <div class="vsep"></div>
-        <label>Quick</label>
+        <label data-i="quick">Quick</label>
         <div class="chip-group">
-          <button class="chip" onclick="blQuick('today')">Today</button>
-          <button class="chip" onclick="blQuick('week')">This Week</button>
-          <button class="chip" onclick="blQuick('2w')">Next 2 Weeks</button>
-          <button class="chip" onclick="blQuick('month')">This Month</button>
-          <button class="chip" onclick="blQuick('all')">All</button>
+          <button class="chip" onclick="blQuick('today')" data-i="today">Today</button>
+          <button class="chip" onclick="blQuick('week')" data-i="thisWeek">This Week</button>
+          <button class="chip" onclick="blQuick('2w')" data-i="next2w">Next 2 Weeks</button>
+          <button class="chip" onclick="blQuick('month')" data-i="thisMonth">This Month</button>
+          <button class="chip" onclick="blQuick('all')" data-i="all">All</button>
         </div>
         <div class="vsep"></div>
-        <label>Process</label>
-        <input class="inp" id="bl-q" placeholder="Filter…" oninput="renderBacklog()" style="min-width:140px">
+        <label data-i="process">Process</label>
+        <input class="inp" id="bl-q" placeholder="Filter…" oninput="renderBacklog()" style="min-width:130px">
         <span class="row-count ml-a" id="bl-cnt">—</span>
       </div>
-
       <div class="stat-row" id="bl-stats"></div>
-
       <div class="tbl-wrap">
         <div class="tbl-scr">
           <table>
             <thead>
               <tr>
                 <th style="width:32px"></th>
-                <th>Process Step</th>
-                <th>Tasks</th>
-                <th>Total Area (m²)</th>
-                <th>Overdue Tasks</th>
-                <th>Overdue %</th>
-                <th>Order Types</th>
+                <th data-i="colProcess">Process Step</th>
+                <th data-i="colTasks">Tasks</th>
+                <th data-i="colArea">Total Area (m²)</th>
+                <th data-i="colOverdueTasks">Overdue Tasks</th>
+                <th data-i="colOverduePct">Overdue %</th>
+                <th data-i="colOrderTypes">Order Types</th>
               </tr>
             </thead>
             <tbody id="bl-body"></tbody>
           </table>
         </div>
       </div>
-
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════
-       PANE 3 — PRODUCTION AREA
-  ═══════════════════════════════════════════ -->
+  <!-- PANE 3: PRODUCTION AREA -->
   <div class="pane hidden" id="pane-production">
     <div class="page">
-
       <div class="toolbar">
-        <label>From</label>
+        <label data-i="from">From</label>
         <input type="date" class="inp" id="pr-from" oninput="renderProduction()">
-        <label>To</label>
+        <label data-i="to">To</label>
         <input type="date" class="inp" id="pr-to" oninput="renderProduction()">
         <div class="vsep"></div>
-        <label>Granularity</label>
+        <label data-i="granularity">Granularity</label>
         <div class="chip-group">
-          <button class="chip on" id="gran-day" onclick="setGran('day',this)">Daily</button>
-          <button class="chip" id="gran-week" onclick="setGran('week',this)">Weekly</button>
+          <button class="chip on" id="gran-day" onclick="setGran('day',this)" data-i="daily">Daily</button>
+          <button class="chip" id="gran-week" onclick="setGran('week',this)" data-i="weekly">Weekly</button>
         </div>
         <div class="vsep"></div>
-        <label>Process</label>
-        <input class="inp" id="pr-q" placeholder="Filter…" oninput="renderProduction()" style="min-width:140px">
+        <label data-i="process">Process</label>
+        <input class="inp" id="pr-q" placeholder="Filter…" oninput="renderProduction()" style="min-width:130px">
         <span class="row-count ml-a" id="pr-cnt">—</span>
       </div>
-
       <div class="matrix-outer">
         <table class="mtbl" id="pr-matrix"></table>
       </div>
-
     </div>
   </div>
-
-</div><!-- #app -->
+</div>
 
 <script>
-// ════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  PCB PRODUCTION PROCESS ORDER
+// ═══════════════════════════════════════════════════════
+const PCB_ORDER = [
+  '内层前处理贴膜','内层曝光','内层干菲林','内层酸性蚀刻','碱性蚀刻','日蚀',
+  '棕氧化','压合',
+  '钻孔','CCD钻靶','X-RAY打靶','二钻','除胶渣',
+  '沉铜','板电','排板',
+  '外层前处理贴膜','外层曝光','外层显影','图电','酸性蚀刻',
+  '绿油前处理','绿油丝印','绿油预烤','绿油曝光','绿油显影','绿油塞孔','绿油烤板',
+  '树脂塞孔','树脂研磨',
+  '白字','白字后烤','碳油',
+  '沉金前处理','沉金包边','沉金线','沉金后处理',
+  '无铅喷锡','沉锡前处理','沉锡线',
+  '一锣','V-CUT','锣板','二锣',
+  '大板电测','电测','电测1','FQC','FQC验孔'
+];
+
+function pcbRank(name) {
+  const i = PCB_ORDER.indexOf(name);
+  return i === -1 ? 9999 : i;
+}
+
+// ═══════════════════════════════════════════════════════
+//  TRANSLATIONS
+// ═══════════════════════════════════════════════════════
+const TRANS = {
+  en: {
+    appTitle:'Production Plan Dashboard', uploadNew:'Upload New File',
+    tab1:'📋 Overview', tab2:'⚙️ Process Backlog', tab3:'📊 Production Area',
+    uploadDesc:'Upload your production schedule Excel to view order status, process backlog, and area output.',
+    clickUpload:'Click to upload', orDrop:'or drag & drop',
+    feat1:'Overview — every order with lot-level process flow drill-down',
+    feat2:'Process Backlog — workload per step, filtered by date range',
+    feat3:'Production Area — expected area output by process & day',
+    search:'Search', orderType:'Order Type', status:'Status',
+    all:'All', overdue:'Overdue', onTrack:'On Track',
+    colPN:'PN', colOrderType:'Order Type', colExFactory:'Ex-Factory Date',
+    colLots:'Lots', colSteps:'Steps', colLastEnd:'Last End',
+    colOverdue:'Overdue Tasks', colStatus:'Status',
+    statTotal:'Total Orders', statOverdue:'Overdue Orders',
+    statOk:'On Track', statProc:'Processes Involved',
+    statTasks:'Tasks in Range', statArea:'Total Area (m²)',
+    statOverdueTasks:'Overdue Tasks', statActiveProc:'Active Processes',
+    from:'From', to:'To', quick:'Quick', process:'Process',
+    today:'Today', thisWeek:'This Week', next2w:'Next 2 Weeks',
+    thisMonth:'This Month',
+    colProcess:'Process Step', colTasks:'Tasks', colArea:'Total Area (m²)',
+    colOverdueTasks:'Overdue Tasks', colOverduePct:'Overdue %', colOrderTypes:'Order Types',
+    granularity:'Granularity', daily:'Daily', weekly:'Weekly',
+    routeLabel:'Production Route', lotsLabel:'Lots',
+    lotId:'Lot ID', currentStep:'Current Step', estEnd:'Est. Completion', lotStatus:'Status',
+    badgeOverdue:'⚠ Overdue', badgeOk:'✓ On Track', badgeLate:'Late', badgeGood:'OK',
+    uniqueParts:'unique part numbers', ofTotal:'of total',
+  },
+  zh: {
+    appTitle:'生产计划看板', uploadNew:'上传新文件',
+    tab1:'📋 总览', tab2:'⚙️ 工序积压', tab3:'📊 产出面积',
+    uploadDesc:'上传生产计划Excel文件，查看订单状态、工序积压及每日产出面积。',
+    clickUpload:'点击上传', orDrop:'或拖放文件',
+    feat1:'总览 — 所有订单及批次级工序流程下钻',
+    feat2:'工序积压 — 按日期范围查看各工序工作量',
+    feat3:'产出面积 — 各工序每日计划产出面积',
+    search:'搜索', orderType:'订单类型', status:'状态',
+    all:'全部', overdue:'逾期', onTrack:'正常',
+    colPN:'料号', colOrderType:'订单类型', colExFactory:'出厂日期',
+    colLots:'批次数', colSteps:'工序数', colLastEnd:'预计完成',
+    colOverdue:'逾期任务', colStatus:'状态',
+    statTotal:'订单总数', statOverdue:'逾期订单',
+    statOk:'正常订单', statProc:'涉及工序',
+    statTasks:'区间任务数', statArea:'总面积（m²）',
+    statOverdueTasks:'逾期任务数', statActiveProc:'活跃工序',
+    from:'开始日期', to:'结束日期', quick:'快选', process:'工序',
+    today:'今天', thisWeek:'本周', next2w:'未来两周',
+    thisMonth:'本月',
+    colProcess:'工序', colTasks:'任务数', colArea:'总面积（m²）',
+    colOverdueTasks:'逾期任务', colOverduePct:'逾期率', colOrderTypes:'订单类型',
+    granularity:'粒度', daily:'日', weekly:'周',
+    routeLabel:'生产路线', lotsLabel:'批次',
+    lotId:'批次编号', currentStep:'当前工序', estEnd:'预计完成时间', lotStatus:'状态',
+    badgeOverdue:'⚠ 逾期', badgeOk:'✓ 正常', badgeLate:'逾期', badgeGood:'正常',
+    uniqueParts:'个唯一料号', ofTotal:'占总数',
+  }
+};
+
+let LANG = 'en';
+function t(key) { return TRANS[LANG][key] || TRANS.en[key] || key; }
+
+function toggleLang() {
+  LANG = LANG === 'en' ? 'zh' : 'en';
+  document.getElementById('langBtn').textContent = LANG === 'en' ? '中文' : 'EN';
+  applyTranslations();
+  // Re-render current tab
+  const active = document.querySelector('.pane.active');
+  if (active.id === 'pane-overview')    renderOverview();
+  if (active.id === 'pane-backlog')     renderBacklog();
+  if (active.id === 'pane-production')  renderProduction();
+}
+
+function applyTranslations() {
+  document.querySelectorAll('[data-i]').forEach(el => {
+    const key = el.dataset.i;
+    if (el.tagName === 'INPUT') { /* skip inputs */ return; }
+    const v = t(key);
+    if (v) el.textContent = v;
+  });
+}
+
+// ═══════════════════════════════════════════════════════
 //  GLOBALS
-// ════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 let G = {
-  rows: [],       // parsed rows
-  orders: [],     // aggregated orders
-  sortKey: 'exFactory',
-  sortAsc: true,
+  rows:[], orders:[],
   activeTypes: new Set(['__all__']),
   activeStatus: 'all',
   gran: 'day',
 };
+let OV_SORT = 'exFactory', OV_ASC = true;
 
-// ════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  LOADING
-// ════════════════════════════════════════════════
-function showLoad(msg) {
-  document.getElementById('loadingMsg').textContent = msg || 'Processing…';
-  document.getElementById('loadingOverlay').classList.add('show');
-}
-function hideLoad() { document.getElementById('loadingOverlay').classList.remove('show'); }
+// ═══════════════════════════════════════════════════════
+function showLoad(msg) { document.getElementById('loadingMsg').textContent=msg; document.getElementById('loadingOverlay').classList.add('show'); }
+function hideLoad()    { document.getElementById('loadingOverlay').classList.remove('show'); }
 
-// ════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  DATE HELPERS
-// ════════════════════════════════════════════════
-// Parse "DD.MM.YY HH:MM:SS"
+// ═══════════════════════════════════════════════════════
 function pDate(s) {
   if (!s) return null;
   s = String(s).trim();
   const m = s.match(/^(\d{1,2})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
-  if (m) return new Date(2000+Number(m[3]), Number(m[2])-1, Number(m[1]),
-                         Number(m[4]), Number(m[5]), Number(m[6]));
-  // ISO fallback "2026-05-29 08:00:00"
+  if (m) return new Date(2000+Number(m[3]),Number(m[2])-1,Number(m[1]),Number(m[4]),Number(m[5]),Number(m[6]));
   const d = new Date(s.replace(' ','T'));
-  return isNaN(d) ? null : d;
+  return isNaN(d)?null:d;
+}
+function ymd(d)  { if(!d)return''; return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function pad(n)  { return String(n).padStart(2,'0'); }
+function fmtS(d) { if(!d)return'–'; return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}); }
+function fmtDt(d){ if(!d)return'–'; return pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+function dayOf(d){ const r=new Date(d);r.setHours(0,0,0,0);return r; }
+function addDays(d,n){ const r=new Date(d);r.setDate(r.getDate()+n);return r; }
+function weekStart(d){ const r=new Date(d);r.setDate(r.getDate()-r.getDay());r.setHours(0,0,0,0);return r; }
+
+// ═══════════════════════════════════════════════════════
+//  LOT ID extraction:  "WOA260519532-00-001-001_棕氧化" → "WOA260519532-00-001-001"
+// ═══════════════════════════════════════════════════════
+function lotId(task) {
+  const s = String(task||'');
+  const i = s.indexOf('_');
+  return i > -1 ? s.slice(0,i) : s;
 }
 
-function ymd(d) {
-  if (!d) return '';
-  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-}
-
-function pad(n) { return String(n).padStart(2,'0'); }
-
-function fmtShort(d) {
-  if (!d) return '–';
-  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
-}
-
-function fmtDt(d) {
-  if (!d) return '–';
-  return pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
-}
-
-function dayOf(d) { const r=new Date(d); r.setHours(0,0,0,0); return r; }
-
-function addDays(d, n) { const r=new Date(d); r.setDate(r.getDate()+n); return r; }
-
-function weekStart(d) {
-  const r=new Date(d); r.setDate(r.getDate()-r.getDay()); r.setHours(0,0,0,0); return r;
-}
-
-// ════════════════════════════════════════════════
-//  FILE INPUT
-// ════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  FILE LOADING
+// ═══════════════════════════════════════════════════════
 document.getElementById('fileIn').addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (f) loadXlsx(f);
-  e.target.value = '';
+  const f = e.target.files[0]; if(f) loadXlsx(f); e.target.value='';
 });
-
 const dz = document.getElementById('dropZone');
-dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
-dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-dz.addEventListener('drop', e => {
+dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave', ()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e=>{
   e.preventDefault(); dz.classList.remove('drag-over');
-  const f = e.dataTransfer.files[0];
-  if (f && f.name.endsWith('.xlsx')) loadXlsx(f);
+  const f=e.dataTransfer.files[0]; if(f&&f.name.endsWith('.xlsx')) loadXlsx(f);
 });
 
 async function loadXlsx(file) {
   showLoad('Reading Excel file…');
   try {
     const buf = await file.arrayBuffer();
-    showLoad('Parsing worksheet…');
-    await tick();
-    const wb = XLSX.read(buf, { type:'array', cellDates:false });
+    showLoad('Parsing worksheet…'); await tick();
+    const wb = XLSX.read(buf,{type:'array',cellDates:false});
     const ws = wb.Sheets[wb.SheetNames[0]];
-    const raw = XLSX.utils.sheet_to_json(ws, { raw:false, defval:'' });
+    const raw = XLSX.utils.sheet_to_json(ws,{raw:false,defval:''});
 
-    showLoad(`Normalising ${raw.length.toLocaleString()} rows…`);
-    await tick();
+    showLoad(`Normalising ${raw.length.toLocaleString()} rows…`); await tick();
 
     G.rows = raw.map(r => {
-      const start    = pDate(r['Start']);
-      const end      = pDate(r['End']);
-      const deadline = pDate(r['Latest end']);
-      const exFac    = pDate(r['ExFactoryDate']);
-      const area     = parseFloat(r['lot area']) || 0;
-      return {
-        ...r,
-        _start: start,
-        _end:   end,
-        _dead:  deadline,
-        _exFac: exFac,
-        _area:  area,
-        // overdue = task starts AFTER its deadline
-        _late:  !!(start && deadline && deadline < start),
-      };
+      const start = pDate(r['Start']), end = pDate(r['End']),
+            dead  = pDate(r['Latest end']), exFac = pDate(r['ExFactoryDate']);
+      const area  = parseFloat(r['lot area'])||0;
+      const lot   = lotId(r['Task']);
+      return { ...r, _start:start, _end:end, _dead:dead, _exFac:exFac, _area:area,
+               _lot:lot, _late:!!(start&&dead&&dead<start) };
     });
 
-    showLoad('Building orders…');
-    await tick();
+    showLoad('Building orders…'); await tick();
     buildOrders();
 
-    // Default date ranges = first 2 weeks of data
     const allStarts = G.rows.map(r=>r._start).filter(Boolean);
     const dMin = new Date(Math.min(...allStarts));
-    const dMax = new Date(Math.max(...allStarts));
-    const defEnd = addDays(dMin, 13);
-
-    setDateInputs('bl-from','bl-to', dMin, defEnd);
-    setDateInputs('pr-from','pr-to', dMin, defEnd);
+    const defEnd = addDays(dMin,13);
+    setDI('bl-from',ymd(dMin)); setDI('bl-to',ymd(defEnd));
+    setDI('pr-from',ymd(dMin)); setDI('pr-to',ymd(defEnd));
 
     document.getElementById('hdrFile').textContent = '— '+file.name;
     const procCount = new Set(G.rows.map(r=>r['process_name'])).size;
@@ -469,314 +507,336 @@ async function loadXlsx(file) {
       `${G.rows.length.toLocaleString()} tasks · ${G.orders.length} orders · ${procCount} processes`;
 
     buildTypeChips();
-
-    document.getElementById('uploadScreen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-
+    document.getElementById('uploadScreen').style.display='none';
+    document.getElementById('app').style.display='block';
+    wireOvSortHeaders();
     hideLoad();
     renderOverview();
-  } catch(e) {
-    hideLoad();
-    alert('Error loading file:\n'+e.message);
-  }
+  } catch(e) { hideLoad(); alert('Error loading file:\n'+e.message); }
 }
 
-function tick() { return new Promise(r => setTimeout(r, 20)); }
+function tick(){ return new Promise(r=>setTimeout(r,20)); }
+function setDI(id,v){ document.getElementById(id).value=v; }
 
-function setDateInputs(fromId, toId, from, to) {
-  document.getElementById(fromId).value = ymd(from);
-  document.getElementById(toId).value   = ymd(to);
-}
-
-// ════════════════════════════════════════════════
-//  BUILD ORDERS
-//  Key = part number + ex-factory date (same part, different date = different order)
-// ════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  BUILD ORDERS  (key = partNumber + exFactory date)
+// ═══════════════════════════════════════════════════════
 function buildOrders() {
   const map = new Map();
   for (const r of G.rows) {
-    const exKey = r._exFac ? ymd(r._exFac) : 'no-date';
-    const key   = (r['part number']||'') + '|||' + exKey;
-    if (!map.has(key)) {
-      map.set(key, {
-        partNumber: r['part number'] || '',
-        orderType:  r['order_type']  || '',
-        exFactory:  r._exFac,
-        tasks: [],
-      });
-    }
+    const key = (r['part number']||'') + '|||' + (r._exFac ? ymd(r._exFac) : 'no-date');
+    if (!map.has(key)) map.set(key,{
+      partNumber: r['part number']||'', orderType: r['order_type']||'', exFactory: r._exFac, tasks:[]
+    });
     map.get(key).tasks.push(r);
   }
 
   G.orders = Array.from(map.values()).map(o => {
-    const starts    = o.tasks.map(t=>t._start).filter(Boolean);
     const ends      = o.tasks.map(t=>t._end).filter(Boolean);
-    const deadlines = o.tasks.map(t=>t._dead).filter(Boolean);
-    o.tasks.sort((a,b) => (a._start||0) - (b._start||0));
-    const minStart    = starts.length    ? new Date(Math.min(...starts))    : null;
-    const maxEnd      = ends.length      ? new Date(Math.max(...ends))      : null;
-    const maxDeadline = deadlines.length ? new Date(Math.max(...deadlines)) : null;
-    const overdueSteps = o.tasks.filter(t=>t._late).length;
-    return { ...o, taskCount:o.tasks.length, minStart, maxEnd, maxDeadline, overdueSteps,
-             isOverdue: overdueSteps > 0 };
+    const maxEnd    = ends.length ? new Date(Math.max(...ends)) : null;
+    const lots      = new Set(o.tasks.map(t=>t._lot).filter(Boolean));
+    const steps     = new Set(o.tasks.map(t=>t['process_name']).filter(Boolean));
+    const overdueCount = o.tasks.filter(t=>t._late).length;
+    return { ...o, maxEnd, lotCount:lots.size, stepCount:steps.size,
+             overdueCount, isOverdue: overdueCount>0 };
   });
 }
 
-// ════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  TABS
-// ════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 const TABS = ['overview','backlog','production'];
 function goTab(name, btn) {
-  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', TABS[i]===name));
-  document.querySelectorAll('.pane').forEach(p => { p.classList.add('hidden'); p.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TABS[i]===name));
+  document.querySelectorAll('.pane').forEach(p=>{p.classList.add('hidden');p.classList.remove('active');});
   const pane = document.getElementById('pane-'+name);
   pane.classList.remove('hidden'); pane.classList.add('active');
-  if (name==='backlog')     renderBacklog();
-  if (name==='production')  renderProduction();
+  if(name==='backlog')    renderBacklog();
+  if(name==='production') renderProduction();
 }
 
-// ════════════════════════════════════════════════
-//  OVERVIEW
-// ════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  OVERVIEW — filter chips
+// ═══════════════════════════════════════════════════════
 function buildTypeChips() {
   const types = [...new Set(G.orders.map(o=>o.orderType).filter(Boolean))].sort();
   const el = document.getElementById('ov-types');
-  el.innerHTML = `<button class="chip on" data-t="__all__" onclick="ovType(this)">All</button>`
-    + types.map(t=>`<button class="chip" data-t="${t}" onclick="ovType(this)">${esc(t)}</button>`).join('');
+  el.innerHTML = `<button class="chip on" data-t="__all__" onclick="ovType(this)">${t('all')}</button>`
+    + types.map(ty=>`<button class="chip" data-t="${ty}" onclick="ovType(this)">${esc(ty)}</button>`).join('');
 }
 
 function ovType(btn) {
-  const t = btn.dataset.t;
-  if (t==='__all__') {
-    G.activeTypes = new Set(['__all__']);
+  const tv = btn.dataset.t;
+  if(tv==='__all__') {
+    G.activeTypes=new Set(['__all__']);
     btn.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.t==='__all__'));
   } else {
     btn.classList.toggle('on');
     const allChip = btn.closest('.chip-group').querySelector('[data-t="__all__"]');
     allChip.classList.remove('on');
     const active = [...btn.closest('.chip-group').querySelectorAll('.chip.on')].map(c=>c.dataset.t);
-    G.activeTypes = new Set(active.length ? active : ['__all__']);
-    if (!active.length) { allChip.classList.add('on'); G.activeTypes.add('__all__'); }
+    G.activeTypes = new Set(active.length?active:['__all__']);
+    if(!active.length){allChip.classList.add('on');G.activeTypes.add('__all__');}
   }
   renderOverview();
 }
 
 function ovStatus(btn) {
   btn.closest('.chip-group').querySelectorAll('.chip').forEach(c=>c.classList.remove('on','on-red','on-green'));
-  const s = btn.dataset.s;
+  const s=btn.dataset.s;
   btn.classList.add(s==='overdue'?'on-red':s==='ok'?'on-green':'on');
-  G.activeStatus = s;
+  G.activeStatus=s;
   renderOverview();
 }
 
-let OV_SORT = 'exFactory', OV_ASC = true;
-function ovSort(k) {
-  OV_ASC = OV_SORT===k ? !OV_ASC : true;
-  OV_SORT = k;
-  renderOverview();
+// ═══════════════════════════════════════════════════════
+//  OVERVIEW — sort (wire headers on load + re-render)
+// ═══════════════════════════════════════════════════════
+function wireOvSortHeaders() {
+  document.querySelectorAll('#ov-head-row th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const k = th.dataset.k;
+      OV_ASC = OV_SORT===k ? !OV_ASC : true;
+      OV_SORT = k;
+      updateSortIcons();
+      renderOverview();
+    });
+  });
+}
+
+function updateSortIcons() {
+  document.querySelectorAll('#ov-head-row th.sortable').forEach(th=>{
+    th.classList.remove('asc','dsc');
+    if(th.dataset.k===OV_SORT) th.classList.add(OV_ASC?'asc':'dsc');
+  });
 }
 
 function filteredOrders() {
   let list = G.orders;
-  if (!G.activeTypes.has('__all__')) list = list.filter(o=>G.activeTypes.has(o.orderType));
-  if (G.activeStatus==='overdue') list = list.filter(o=>o.isOverdue);
-  if (G.activeStatus==='ok')      list = list.filter(o=>!o.isOverdue);
-  const q = (document.getElementById('ov-q').value||'').trim().toLowerCase();
-  if (q) list = list.filter(o=>o.partNumber.toLowerCase().includes(q));
+  if(!G.activeTypes.has('__all__')) list=list.filter(o=>G.activeTypes.has(o.orderType));
+  if(G.activeStatus==='overdue') list=list.filter(o=>o.isOverdue);
+  if(G.activeStatus==='ok')      list=list.filter(o=>!o.isOverdue);
+  const q=(document.getElementById('ov-q').value||'').trim().toLowerCase();
+  if(q) list=list.filter(o=>o.partNumber.toLowerCase().includes(q));
   return [...list].sort((a,b)=>{
-    let va=a[OV_SORT], vb=b[OV_SORT];
-    if (va instanceof Date && vb instanceof Date) return OV_ASC?va-vb:vb-va;
-    if (typeof va==='number') return OV_ASC?va-vb:vb-va;
+    let va=a[OV_SORT],vb=b[OV_SORT];
+    if(va instanceof Date&&vb instanceof Date) return OV_ASC?va-vb:vb-va;
+    if(typeof va==='number') return OV_ASC?va-vb:vb-va;
     return OV_ASC?String(va||'').localeCompare(String(vb||'')):String(vb||'').localeCompare(String(va||''));
   });
 }
 
+// ═══════════════════════════════════════════════════════
+//  OVERVIEW — render
+// ═══════════════════════════════════════════════════════
 function renderOverview() {
+  // Re-apply translations to static labels
+  document.querySelectorAll('[data-i]').forEach(el=>{
+    if(el.tagName==='INPUT') return;
+    const v=t(el.dataset.i); if(v) el.textContent=v;
+  });
+  updateSortIcons();
+
   const list = filteredOrders();
   const overdue = list.filter(o=>o.isOverdue).length;
-  const ontrack = list.length - overdue;
-  const procs   = new Set(list.flatMap(o=>o.tasks.map(t=>t['process_name'])));
+  const ontrack = list.length-overdue;
+  const procs   = new Set(list.flatMap(o=>o.tasks.map(t2=>t2['process_name'])));
 
   document.getElementById('ov-stats').innerHTML = `
-    <div class="stat s-blue"><div class="stat-lbl">Total Orders</div><div class="stat-val">${list.length}</div><div class="stat-sub">${new Set(list.map(o=>o.partNumber)).size} unique parts</div></div>
-    <div class="stat s-red"><div class="stat-lbl">Overdue Orders</div><div class="stat-val">${overdue}</div><div class="stat-sub">${list.length?Math.round(overdue/list.length*100):0}% of total</div></div>
-    <div class="stat s-green"><div class="stat-lbl">On Track</div><div class="stat-val">${ontrack}</div><div class="stat-sub">${list.length?Math.round(ontrack/list.length*100):0}% of total</div></div>
-    <div class="stat s-amber"><div class="stat-lbl">Processes Involved</div><div class="stat-val">${procs.size}</div><div class="stat-sub">across all orders</div></div>
+    <div class="stat s-blue"><div class="stat-lbl">${t('statTotal')}</div><div class="stat-val">${list.length}</div><div class="stat-sub">${new Set(list.map(o=>o.partNumber)).size} ${t('uniqueParts')}</div></div>
+    <div class="stat s-red"><div class="stat-lbl">${t('statOverdue')}</div><div class="stat-val">${overdue}</div><div class="stat-sub">${list.length?Math.round(overdue/list.length*100):0}% ${t('ofTotal')}</div></div>
+    <div class="stat s-green"><div class="stat-lbl">${t('statOk')}</div><div class="stat-val">${ontrack}</div><div class="stat-sub">${list.length?Math.round(ontrack/list.length*100):0}% ${t('ofTotal')}</div></div>
+    <div class="stat s-amber"><div class="stat-lbl">${t('statProc')}</div><div class="stat-val">${procs.size}</div><div class="stat-sub">&nbsp;</div></div>
   `;
   document.getElementById('ov-cnt').textContent = list.length+' orders';
 
-  // Sort indicators
-  document.querySelectorAll('#ov-head th').forEach(th=>{th.classList.remove('asc','dsc')});
-
   const tbody = document.getElementById('ov-body');
   tbody.innerHTML = '';
-
   for (const o of list) {
     const id = uid();
-    const statusBadge = o.isOverdue
-      ? '<span class="badge b-overdue">⚠ Overdue</span>'
-      : '<span class="badge b-ok">✓ On Track</span>';
-
-    tbody.insertAdjacentHTML('beforeend', `
+    const late  = o.isOverdue;
+    const badge = late
+      ? `<span class="badge b-overdue">${t('badgeOverdue')}</span>`
+      : `<span class="badge b-ok">${t('badgeOk')}</span>`;
+    tbody.insertAdjacentHTML('beforeend',`
       <tr>
         <td><button class="xbtn" onclick="toggleRow('${id}',this)">+</button></td>
         <td style="font-weight:700">${esc(o.partNumber)}</td>
         <td><span class="badge b-neutral">${esc(o.orderType)}</span></td>
-        <td>${fmtShort(o.exFactory)}</td>
-        <td>${o.taskCount}</td>
-        <td>${fmtDt(o.minStart)}</td>
+        <td>${fmtS(o.exFactory)}</td>
+        <td><b>${o.lotCount}</b></td>
+        <td>${o.stepCount}</td>
         <td>${fmtDt(o.maxEnd)}</td>
-        <td>${fmtShort(o.maxDeadline)}</td>
-        <td>${o.overdueSteps>0?`<span style="color:var(--red);font-weight:700">${o.overdueSteps}</span>`:'0'}</td>
-        <td>${statusBadge}</td>
+        <td ${late?'style="color:var(--red);font-weight:700"':''}>${o.overdueCount||0}</td>
+        <td>${badge}</td>
       </tr>
       <tr class="xrow" id="${id}">
-        <td class="xcell" colspan="10">
-          <div class="xinner">
-            <h4>Process Flow — ${esc(o.partNumber)} · Ex-Factory ${fmtShort(o.exFactory)}</h4>
-            ${flowHtml(o)}
-          </div>
-        </td>
+        <td class="xcell" colspan="9"><div class="xinner">${buildLotView(o)}</div></td>
       </tr>
     `);
   }
 }
 
-function flowHtml(o) {
-  return '<div class="flow-grid">'
-    + o.tasks.map(t => {
-        const late   = t._late;
-        const hoursLeft = t._dead && t._start ? (t._dead - t._start) / 3600000 : null;
-        const warn   = !late && hoursLeft !== null && hoursLeft < 24;
-        const cls    = late ? 'f-late' : warn ? 'f-warn' : 'f-ok';
-        return `<div class="fstep ${cls}">
-          <div class="fstep-name">${esc(t['process_name']||'–')}</div>
-          <div class="fstep-detail">
-            ${t['Station']?`<b>Station:</b> ${esc(t['Station'])}<br>`:''}
-            <b>Start:</b> ${fmtDt(t._start)}<br>
-            <b>End:</b> ${fmtDt(t._end)}<br>
-            <b>Deadline:</b> ${fmtDt(t._dead)}
-            ${t['in backlog']?`<br><em style="opacity:.8">${esc(t['in backlog'])}</em>`:''}
-          </div>
-        </div>`;
-      }).join('')
-    + '</div>';
-}
+// ═══════════════════════════════════════════════════════
+//  OVERVIEW — expanded lot view
+// ═══════════════════════════════════════════════════════
+function buildLotView(o) {
+  // Unique steps in PCB order
+  const stepSet = new Set(o.tasks.map(t2=>t2['process_name']).filter(Boolean));
+  const orderedSteps = [...stepSet].sort((a,b)=>pcbRank(a)-pcbRank(b));
 
-function toggleRow(id, btn) {
-  const row = document.getElementById(id);
-  const open = row.classList.toggle('open');
-  btn.textContent = open ? '−' : '+';
-}
+  // Route bar
+  const routeParts = orderedSteps.map((s,i)=>
+    `<span class="lot-route-step">${esc(s)}</span>${i<orderedSteps.length-1?'<span class="lot-route-arrow">→</span>':''}`
+  ).join('');
+  const routeHtml = `
+    <div class="xinner-title">${t('routeLabel')} (${orderedSteps.length} ${t('colSteps').toLowerCase()})</div>
+    <div class="lot-route">${routeParts}</div>
+  `;
 
-// ════════════════════════════════════════════════
-//  PROCESS BACKLOG
-// ════════════════════════════════════════════════
-function blQuick(key) {
-  const today = dayOf(new Date());
-  let s, e;
-  if (key==='today')  { s=today; e=today; }
-  else if (key==='week')  { s=today; e=addDays(today,6); }
-  else if (key==='2w')    { s=today; e=addDays(today,13); }
-  else if (key==='month') { s=today; e=addDays(today,29); }
-  else {
-    const dates = G.rows.map(r=>r._start).filter(Boolean);
-    s = new Date(Math.min(...dates));
-    e = new Date(Math.max(...dates));
+  // Group tasks by lot
+  const lotMap = new Map();
+  for (const task of o.tasks) {
+    const lid = task._lot || 'unknown';
+    if(!lotMap.has(lid)) lotMap.set(lid,[]);
+    lotMap.get(lid).push(task);
   }
-  setDateInputs('bl-from','bl-to',s,e);
+
+  // Build lot rows: current step = first in PCB order; last end = max End
+  const lotRows = [...lotMap.entries()].map(([lid,tasks])=>{
+    const sorted  = [...tasks].sort((a,b)=>pcbRank(a['process_name'])-pcbRank(b['process_name']));
+    const curStep = sorted[0]?.['process_name']||'–';
+    const ends    = tasks.map(t2=>t2._end).filter(Boolean);
+    const lastEnd = ends.length ? new Date(Math.max(...ends)) : null;
+    const isLate  = tasks.some(t2=>t2._late);
+    return {lid, curStep, lastEnd, isLate};
+  }).sort((a,b)=>(a.lastEnd||0)-(b.lastEnd||0));
+
+  const lotsTableRows = lotRows.map(lr=>`
+    <tr>
+      <td style="font-family:monospace;font-size:.78rem;white-space:nowrap">${esc(lr.lid)}</td>
+      <td><span class="badge b-blue">${esc(lr.curStep)}</span></td>
+      <td>${fmtDt(lr.lastEnd)}</td>
+      <td>${lr.isLate?`<span class="badge b-overdue">${t('badgeLate')}</span>`:`<span class="badge b-ok">${t('badgeGood')}</span>`}</td>
+    </tr>`).join('');
+
+  const lotsHtml = `
+    <div class="xinner-title" style="margin-top:6px">${t('lotsLabel')} (${lotRows.length})</div>
+    <div class="tbl-scr"><table>
+      <thead><tr>
+        <th>${t('lotId')}</th>
+        <th>${t('currentStep')}</th>
+        <th>${t('estEnd')}</th>
+        <th>${t('lotStatus')}</th>
+      </tr></thead>
+      <tbody>${lotsTableRows}</tbody>
+    </table></div>
+  `;
+
+  return routeHtml + lotsHtml;
+}
+
+function toggleRow(id,btn){
+  const row=document.getElementById(id);
+  const open=row.classList.toggle('open');
+  btn.textContent=open?'−':'+';
+}
+
+// ═══════════════════════════════════════════════════════
+//  PROCESS BACKLOG
+// ═══════════════════════════════════════════════════════
+function blQuick(key) {
+  const today=dayOf(new Date()); let s,e;
+  if(key==='today'){s=today;e=today;}
+  else if(key==='week'){s=today;e=addDays(today,6);}
+  else if(key==='2w'){s=today;e=addDays(today,13);}
+  else if(key==='month'){s=today;e=addDays(today,29);}
+  else{const ds=G.rows.map(r=>r._start).filter(Boolean);s=new Date(Math.min(...ds));e=new Date(Math.max(...ds));}
+  setDI('bl-from',ymd(s)); setDI('bl-to',ymd(e));
   renderBacklog();
 }
 
 function renderBacklog() {
-  const fromStr = document.getElementById('bl-from').value;
-  const toStr   = document.getElementById('bl-to').value;
-  const q       = (document.getElementById('bl-q').value||'').trim().toLowerCase();
-  if (!fromStr || !toStr) return;
+  const fromStr=document.getElementById('bl-from').value;
+  const toStr  =document.getElementById('bl-to').value;
+  const q      =(document.getElementById('bl-q').value||'').trim().toLowerCase();
+  if(!fromStr||!toStr) return;
 
-  const from = new Date(fromStr+'T00:00:00');
-  const to   = new Date(toStr+'T23:59:59');
-
-  const rows = G.rows.filter(r => r._start && r._start>=from && r._start<=to);
+  const from=new Date(fromStr+'T00:00:00'), to=new Date(toStr+'T23:59:59');
+  const rows=G.rows.filter(r=>r._start&&r._start>=from&&r._start<=to);
 
   // Group by process
-  const map = new Map();
-  for (const r of rows) {
-    const p = r['process_name'] || 'Unknown';
-    if (!map.has(p)) map.set(p,[]);
+  const map=new Map();
+  for(const r of rows){
+    const p=r['process_name']||'Unknown';
+    if(!map.has(p)) map.set(p,[]);
     map.get(p).push(r);
   }
 
-  let procs = [...map.entries()].map(([name,tasks]) => ({
-    name,
-    tasks,
-    count:    tasks.length,
-    area:     tasks.reduce((s,t)=>s+t._area,0),
-    overdue:  tasks.filter(t=>t._late).length,
-    types:    [...new Set(tasks.map(t=>t['order_type']).filter(Boolean))],
-  })).sort((a,b)=>b.count-a.count);
+  // Sort by PCB order, then unknown processes alphabetically at end
+  let procs=[...map.entries()].map(([name,tasks])=>({
+    name, tasks, count:tasks.length,
+    area: tasks.reduce((s,t2)=>s+t2._area,0),
+    overdue: tasks.filter(t2=>t2._late).length,
+    types: [...new Set(tasks.map(t2=>t2['order_type']).filter(Boolean))],
+    rank: pcbRank(name),
+  }));
+  procs.sort((a,b)=>a.rank!==b.rank ? a.rank-b.rank : a.name.localeCompare(b.name));
 
-  if (q) procs = procs.filter(p=>p.name.toLowerCase().includes(q));
+  if(q) procs=procs.filter(p=>p.name.toLowerCase().includes(q));
 
-  const totTasks   = rows.length;
-  const totArea    = rows.reduce((s,r)=>s+r._area,0);
-  const totOverdue = rows.filter(r=>r._late).length;
+  const totTasks  =rows.length;
+  const totArea   =rows.reduce((s,r)=>s+r._area,0);
+  const totOverdue=rows.filter(r=>r._late).length;
 
-  document.getElementById('bl-stats').innerHTML = `
-    <div class="stat s-blue"><div class="stat-lbl">Tasks in Range</div><div class="stat-val">${totTasks.toLocaleString()}</div><div class="stat-sub">${fromStr} → ${toStr}</div></div>
-    <div class="stat s-amber"><div class="stat-lbl">Total Area (m²)</div><div class="stat-val">${totArea.toFixed(1)}</div><div class="stat-sub">across all processes</div></div>
-    <div class="stat s-red"><div class="stat-lbl">Overdue Tasks</div><div class="stat-val">${totOverdue.toLocaleString()}</div><div class="stat-sub">${totTasks?Math.round(totOverdue/totTasks*100):0}% of tasks</div></div>
-    <div class="stat s-green"><div class="stat-lbl">Active Processes</div><div class="stat-val">${procs.length}</div><div class="stat-sub">in selected range</div></div>
+  document.getElementById('bl-stats').innerHTML=`
+    <div class="stat s-blue"><div class="stat-lbl">${t('statTasks')}</div><div class="stat-val">${totTasks.toLocaleString()}</div><div class="stat-sub">${fromStr} → ${toStr}</div></div>
+    <div class="stat s-amber"><div class="stat-lbl">${t('statArea')}</div><div class="stat-val">${totArea.toFixed(1)}</div><div class="stat-sub">&nbsp;</div></div>
+    <div class="stat s-red"><div class="stat-lbl">${t('statOverdueTasks')}</div><div class="stat-val">${totOverdue.toLocaleString()}</div><div class="stat-sub">${totTasks?Math.round(totOverdue/totTasks*100):0}% ${t('ofTotal')}</div></div>
+    <div class="stat s-green"><div class="stat-lbl">${t('statActiveProc')}</div><div class="stat-val">${procs.length}</div><div class="stat-sub">&nbsp;</div></div>
   `;
-  document.getElementById('bl-cnt').textContent = procs.length+' processes';
+  document.getElementById('bl-cnt').textContent=procs.length+' processes';
 
-  const tbody = document.getElementById('bl-body');
-  tbody.innerHTML = '';
-
-  for (const p of procs) {
-    const pct = p.count>0 ? Math.round(p.overdue/p.count*100) : 0;
-    const late = p.overdue>0;
-    const id = uid();
-
-    tbody.insertAdjacentHTML('beforeend', `
+  const tbody=document.getElementById('bl-body');
+  tbody.innerHTML='';
+  for(const p of procs){
+    const pct=p.count>0?Math.round(p.overdue/p.count*100):0;
+    const red=p.overdue>0;
+    const id=uid();
+    tbody.insertAdjacentHTML('beforeend',`
       <tr>
         <td><button class="xbtn" onclick="toggleRow('${id}',this)">+</button></td>
         <td style="font-weight:700">${esc(p.name)}</td>
         <td>${p.count.toLocaleString()}</td>
         <td>${p.area.toFixed(2)}</td>
-        <td ${late?'style="color:var(--red);font-weight:700"':''}>${p.overdue}</td>
-        <td ${late?'style="color:var(--red);font-weight:700"':''}>${pct}%</td>
-        <td class="wrap">${p.types.map(t=>`<span class="badge b-neutral" style="margin:1px">${esc(t)}</span>`).join('')}</td>
+        <td ${red?'style="color:var(--red);font-weight:700"':''}>${p.overdue}</td>
+        <td ${red?'style="color:var(--red);font-weight:700"':''}>${pct}%</td>
+        <td class="wrap">${p.types.map(ty=>`<span class="badge b-neutral" style="margin:1px">${esc(ty)}</span>`).join('')}</td>
       </tr>
       <tr class="xrow" id="${id}">
         <td class="xcell" colspan="7">
           <div class="xinner">
-            <h4>${esc(p.name)} — ${p.count} tasks in range</h4>
-            <div class="tbl-scr">
-              <table>
-                <thead><tr>
-                  <th>Part Number</th><th>Order Type</th><th>Station</th>
-                  <th>Start</th><th>End</th><th>Deadline</th>
-                  <th>Area (m²)</th><th>Status</th><th>Backlog Type</th>
-                </tr></thead>
-                <tbody>
-                  ${p.tasks.slice(0,300).map(t=>`
-                    <tr>
-                      <td style="font-weight:600">${esc(t['part number']||'')}</td>
-                      <td><span class="badge b-neutral">${esc(t['order_type']||'')}</span></td>
-                      <td>${esc(t['Station']||'')}</td>
-                      <td>${fmtDt(t._start)}</td>
-                      <td>${fmtDt(t._end)}</td>
-                      <td>${fmtDt(t._dead)}</td>
-                      <td>${t._area.toFixed(3)}</td>
-                      <td>${t._late?'<span class="badge b-overdue">Late</span>':'<span class="badge b-ok">OK</span>'}</td>
-                      <td style="font-size:.72rem;color:var(--muted)">${esc(t['in backlog']||'')}</td>
-                    </tr>
-                  `).join('')}
-                  ${p.tasks.length>300?`<tr><td colspan="9" class="note">… and ${p.tasks.length-300} more</td></tr>`:''}
-                </tbody>
-              </table>
-            </div>
+            <div class="xinner-title">${esc(p.name)} — ${p.count} tasks</div>
+            <div class="tbl-scr"><table>
+              <thead><tr>
+                <th>${t('colPN')}</th><th>${t('colOrderType')}</th><th>Station</th>
+                <th>Start</th><th>End</th><th>Deadline</th>
+                <th>${t('colArea')}</th><th>${t('colStatus')}</th><th>Backlog</th>
+              </tr></thead>
+              <tbody>
+                ${p.tasks.slice(0,300).map(r=>`
+                  <tr>
+                    <td style="font-weight:600">${esc(r['part number']||'')}</td>
+                    <td><span class="badge b-neutral">${esc(r['order_type']||'')}</span></td>
+                    <td>${esc(r['Station']||'')}</td>
+                    <td>${fmtDt(r._start)}</td><td>${fmtDt(r._end)}</td><td>${fmtDt(r._dead)}</td>
+                    <td>${r._area.toFixed(3)}</td>
+                    <td>${r._late?`<span class="badge b-overdue">${t('badgeLate')}</span>`:`<span class="badge b-ok">${t('badgeGood')}</span>`}</td>
+                    <td style="font-size:.72rem;color:var(--muted)">${esc(r['in backlog']||'')}</td>
+                  </tr>`).join('')}
+                ${p.tasks.length>300?`<tr><td colspan="9" class="note">… and ${p.tasks.length-300} more</td></tr>`:''}
+              </tbody>
+            </table></div>
           </div>
         </td>
       </tr>
@@ -784,122 +844,92 @@ function renderBacklog() {
   }
 }
 
-// ════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  PRODUCTION AREA MATRIX
-// ════════════════════════════════════════════════
-function setGran(g, btn) {
-  G.gran = g;
+// ═══════════════════════════════════════════════════════
+function setGran(g,btn){
+  G.gran=g;
   document.querySelectorAll('#pane-production .chip[id^="gran"]').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   renderProduction();
 }
 
-function renderProduction() {
-  const fromStr = document.getElementById('pr-from').value;
-  const toStr   = document.getElementById('pr-to').value;
-  const q       = (document.getElementById('pr-q').value||'').trim().toLowerCase();
-  if (!fromStr || !toStr) return;
+function renderProduction(){
+  const fromStr=document.getElementById('pr-from').value;
+  const toStr  =document.getElementById('pr-to').value;
+  const q      =(document.getElementById('pr-q').value||'').trim().toLowerCase();
+  if(!fromStr||!toStr) return;
 
-  const from = new Date(fromStr+'T00:00:00');
-  const to   = new Date(toStr+'T23:59:59');
+  const from=new Date(fromStr+'T00:00:00'), to=new Date(toStr+'T23:59:59');
 
-  // Build bucket list
-  const buckets = [];
-  if (G.gran==='day') {
-    for (let d=new Date(from); d<=to; d=addDays(d,1)) buckets.push(new Date(d));
-  } else {
-    for (let d=weekStart(from); d<=to; d=addDays(d,7)) buckets.push(new Date(d));
-  }
+  const buckets=[];
+  if(G.gran==='day'){ for(let d=new Date(from);d<=to;d=addDays(d,1)) buckets.push(new Date(d)); }
+  else              { for(let d=weekStart(from);d<=to;d=addDays(d,7)) buckets.push(new Date(d)); }
 
-  if (buckets.length>120) {
-    document.getElementById('pr-matrix').innerHTML =
-      `<tr><td style="padding:24px;color:var(--red)">Range too large (${buckets.length} columns). Select a smaller range or switch to Weekly.</td></tr>`;
+  if(buckets.length>120){
+    document.getElementById('pr-matrix').innerHTML=`<tr><td style="padding:24px;color:var(--red)">Range too large (${buckets.length} cols). Select a smaller range or switch to Weekly.</td></tr>`;
     return;
   }
 
-  const bucketKey = d => G.gran==='day' ? ymd(d) : ymd(weekStart(d));
+  const bKey = d => G.gran==='day' ? ymd(d) : ymd(weekStart(d));
+  const rows  = G.rows.filter(r=>r._start&&r._start>=from&&r._start<=to);
 
-  const rows = G.rows.filter(r => r._start && r._start>=from && r._start<=to);
-
-  // Accumulate area per process per bucket
-  const procMap = new Map();
-  for (const r of rows) {
-    const p = r['process_name'] || 'Unknown';
-    const k = bucketKey(r._start);
-    if (!procMap.has(p)) procMap.set(p, new Map());
-    procMap.get(p).set(k, (procMap.get(p).get(k)||0) + r._area);
+  const procMap=new Map();
+  for(const r of rows){
+    const p=r['process_name']||'Unknown';
+    const k=bKey(r._start);
+    if(!procMap.has(p)) procMap.set(p,new Map());
+    procMap.get(p).set(k,(procMap.get(p).get(k)||0)+r._area);
   }
 
-  let procs = [...procMap.entries()]
-    .map(([name,bm]) => {
-      const total = [...bm.values()].reduce((s,v)=>s+v,0);
-      return { name, bm, total };
-    })
-    .sort((a,b)=>b.total-a.total);
+  let procs=[...procMap.entries()].map(([name,bm])=>({
+    name, bm, total:[...bm.values()].reduce((s,v)=>s+v,0), rank:pcbRank(name)
+  })).sort((a,b)=>b.total-a.total);
 
-  if (q) procs = procs.filter(p=>p.name.toLowerCase().includes(q));
+  if(q) procs=procs.filter(p=>p.name.toLowerCase().includes(q));
+  document.getElementById('pr-cnt').textContent=procs.length+' processes';
 
-  document.getElementById('pr-cnt').textContent = procs.length+' processes';
+  if(!procs.length){document.getElementById('pr-matrix').innerHTML=`<tr><td class="note">No data for selected range.</td></tr>`;return;}
 
-  if (!procs.length) {
-    document.getElementById('pr-matrix').innerHTML = `<tr><td class="note">No data for selected range.</td></tr>`;
-    return;
-  }
+  procs.forEach(p=>{p.max=Math.max(...[...p.bm.values()],0.001);});
+  const bKeys=buckets.map(bKey);
+  const colTotals=bKeys.map(k=>procs.reduce((s,p)=>s+(p.bm.get(k)||0),0));
+  const grandTotal=colTotals.reduce((s,v)=>s+v,0);
 
-  // Max value per row for heat intensity
-  procs.forEach(p => { p.max = Math.max(...[...p.bm.values()], 0.001); });
-
-  // Column totals
-  const bKeys = buckets.map(bucketKey);
-  const colTotals = bKeys.map(k => procs.reduce((s,p)=>s+(p.bm.get(k)||0),0));
-  const grandTotal = colTotals.reduce((s,v)=>s+v,0);
-
-  const fmtBktHdr = d => G.gran==='day'
+  const fmtBkt=d=>G.gran==='day'
     ? d.toLocaleDateString('en-US',{month:'short',day:'numeric'})
-    : 'W '+pad(d.getMonth()+1)+'/'+pad(d.getDate());
+    : 'W'+pad(d.getMonth()+1)+'/'+pad(d.getDate());
 
-  let html = `<thead>
-    <tr>
-      <th class="sticky-both sticky-col">Process Step</th>
-      ${buckets.map(b=>`<th class="sticky-row">${fmtBktHdr(b)}</th>`).join('')}
-      <th class="sticky-row" style="background:#e8f5e9;color:var(--green)">Total</th>
-    </tr>
-  </thead><tbody>`;
+  let html=`<thead><tr>
+    <th class="sticky-both sticky-col">${t('colProcess')}</th>
+    ${buckets.map(b=>`<th class="sticky-row">${fmtBkt(b)}</th>`).join('')}
+    <th class="sticky-row" style="background:#e8f5e9;color:var(--green)">Total</th>
+  </tr></thead><tbody>`;
 
-  for (const p of procs) {
-    html += `<tr>
-      <td class="proc-cell">${esc(p.name)}</td>
-      ${bKeys.map(k=>{
-        const v = p.bm.get(k)||0;
-        const ratio = v/p.max;
-        const bg = v>0 ? `rgba(21,101,192,${(ratio*0.55).toFixed(2)})` : 'transparent';
-        const color = ratio>0.6 ? '#fff' : 'inherit';
-        return `<td style="background:${bg};color:${color}">${v>0?v.toFixed(2):''}</td>`;
-      }).join('')}
-      <td class="t-total">${p.total.toFixed(2)}</td>
-    </tr>`;
+  for(const p of procs){
+    html+=`<tr><td class="proc-cell">${esc(p.name)}</td>
+    ${bKeys.map(k=>{
+      const v=p.bm.get(k)||0;
+      const ratio=v/p.max;
+      const bg=v>0?`rgba(21,101,192,${(ratio*0.55).toFixed(2)})`:'transparent';
+      const color=ratio>0.6?'#fff':'inherit';
+      return `<td style="background:${bg};color:${color}">${v>0?v.toFixed(2):''}</td>`;
+    }).join('')}
+    <td class="t-total">${p.total.toFixed(2)}</td></tr>`;
   }
-
-  html += `<tr class="r-total">
-    <td class="proc-cell">TOTAL</td>
+  html+=`<tr class="r-total"><td class="proc-cell">TOTAL</td>
     ${colTotals.map(v=>`<td>${v>0?v.toFixed(2):''}</td>`).join('')}
     <td class="t-total">${grandTotal.toFixed(2)}</td>
   </tr></tbody>`;
-
-  document.getElementById('pr-matrix').innerHTML = html;
+  document.getElementById('pr-matrix').innerHTML=html;
 }
 
-// ════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  UTILS
-// ════════════════════════════════════════════════
-let _uidN = 0;
-function uid() { return 'r'+(++_uidN); }
-
-function esc(s) {
-  return String(s||'')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+// ═══════════════════════════════════════════════════════
+let _n=0;
+function uid(){ return 'r'+(++_n); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 </body>
 </html>

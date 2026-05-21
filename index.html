@@ -224,11 +224,12 @@ tbody td.wrap{white-space:normal;max-width:280px}
                 <th style="width:32px"></th>
                 <th class="sortable" data-k="partNumber" data-i="colPN">PN</th>
                 <th class="sortable" data-k="orderType" data-i="colOrderType">Order Type</th>
-                <th class="sortable" data-k="exFactory" data-i="colExFactory">Ex-Factory Date</th>
                 <th class="sortable" data-k="lotCount" data-i="colLots">Lots</th>
                 <th class="sortable" data-k="stepCount" data-i="colSteps">Steps</th>
-                <th class="sortable" data-k="maxEnd" data-i="colLastEnd">Last End</th>
+                <th class="sortable" data-k="totalArea" data-i="colAreaOv">Area (m²)</th>
                 <th class="sortable" data-k="overdueCount" data-i="colOverdue">Overdue Tasks</th>
+                <th class="sortable" data-k="maxEnd" data-i="colEstEnd">Est. End Date</th>
+                <th class="sortable" data-k="exFactory" data-i="colExFactory">Ex-Factory Date</th>
                 <th data-i="colStatus">Status</th>
               </tr>
             </thead>
@@ -314,18 +315,32 @@ tbody td.wrap{white-space:normal;max-width:280px}
 //  PCB PRODUCTION PROCESS ORDER
 // ═══════════════════════════════════════════════════════
 const PCB_ORDER = [
-  '内层前处理贴膜','内层曝光','内层干菲林','内层酸性蚀刻','碱性蚀刻','日蚀',
-  '棕氧化','压合',
-  '钻孔','CCD钻靶','X-RAY打靶','二钻','除胶渣',
-  '沉铜','板电','排板',
-  '外层前处理贴膜','外层曝光','外层显影','图电','酸性蚀刻',
-  '绿油前处理','绿油丝印','绿油预烤','绿油曝光','绿油显影','绿油塞孔','绿油烤板',
-  '树脂塞孔','树脂研磨',
-  '白字','白字后烤','碳油',
+  // Inner layer dry film + etching
+  '内层前处理贴膜','内层曝光','内层干菲林','内层酸性蚀刻',
+  // Pressing / lamination
+  '棕氧化','排板','压合',
+  // X-ray + drilling
+  'X-RAY打靶','CCD钻靶','钻孔','二钻',
+  // Plating 1 — desmear, copper, panel plate
+  '日蚀','除胶渣','沉铜','板电',
+  // Outer layer dry film
+  '外层前处理贴膜','外层曝光','外层显影',
+  // Outer etch + plating 2
+  '酸性蚀刻','图电','碱性蚀刻','树脂塞孔','树脂研磨',
+  // Solder mask
+  '绿油前处理','绿油丝印','绿油塞孔','绿油预烤','绿油曝光','绿油显影','绿油烤板',
+  // Legend / carbon ink
+  '白字','碳油','白字后烤',
+  // Surface finish
+  '无铅喷锡',
   '沉金前处理','沉金包边','沉金线','沉金后处理',
-  '无铅喷锡','沉锡前处理','沉锡线',
+  '沉锡前处理','沉锡线',
+  // Forming / routing
   '一锣','V-CUT','锣板','二锣',
-  '大板电测','电测','电测1','FQC','FQC验孔'
+  // Test
+  '大板电测','电测','电测1',
+  // FQC
+  'FQC','FQC验孔'
 ];
 
 function pcbRank(name) {
@@ -348,7 +363,7 @@ const TRANS = {
     search:'Search', orderType:'Order Type', status:'Status',
     all:'All', overdue:'Overdue', onTrack:'On Track',
     colPN:'PN', colOrderType:'Order Type', colExFactory:'Ex-Factory Date',
-    colLots:'Lots', colSteps:'Steps', colLastEnd:'Last End',
+    colLots:'Lots', colSteps:'Steps', colEstEnd:'Est. End Date', colAreaOv:'Area (m²)',
     colOverdue:'Overdue Tasks', colStatus:'Status',
     statTotal:'Total Orders', statOverdue:'Overdue Orders',
     statOk:'On Track', statProc:'Processes Involved',
@@ -377,7 +392,7 @@ const TRANS = {
     search:'搜索', orderType:'订单类型', status:'状态',
     all:'全部', overdue:'逾期', onTrack:'正常',
     colPN:'料号', colOrderType:'订单类型', colExFactory:'出厂日期',
-    colLots:'批次数', colSteps:'工序数', colLastEnd:'预计完成',
+    colLots:'批次数', colSteps:'工序数', colEstEnd:'预计完成日期', colAreaOv:'面积（m²）',
     colOverdue:'逾期任务', colStatus:'状态',
     statTotal:'订单总数', statOverdue:'逾期订单',
     statOk:'正常订单', statProc:'涉及工序',
@@ -544,6 +559,7 @@ function buildOrders() {
     const lots      = new Set(o.tasks.map(t=>t._lot).filter(Boolean));
     const steps     = new Set(o.tasks.map(t=>t['process_name']).filter(Boolean));
     const overdueCount = o.tasks.filter(t=>t._late).length;
+    const totalArea = lotAreaSum(o.tasks);
 
     // Urgency: a lot is urgent if any of its tasks has State = 'Urgent'
     const lotUrgent = new Map();
@@ -557,7 +573,7 @@ function buildOrders() {
                   : urgentLots > 0 ? 'some' : 'none';
 
     return { ...o, maxEnd, lotCount:lots.size, stepCount:steps.size,
-             overdueCount, isOverdue: overdueCount>0, urgency, urgentLots };
+             overdueCount, isOverdue: overdueCount>0, urgency, urgentLots, totalArea };
   });
 }
 
@@ -686,15 +702,16 @@ function renderOverview() {
           ${o.urgency==='some' ? `<span class="badge b-urgent-partial" style="margin-left:6px" title="${o.urgentLots} of ${o.lotCount} lots urgent">⚡ ${o.urgentLots}/${o.lotCount} ${t('urgent')}</span>` : ''}
         </td>
         <td><span class="badge b-neutral">${esc(o.orderType)}</span></td>
-        <td>${fmtS(o.exFactory)}</td>
         <td><b>${o.lotCount}</b></td>
         <td>${o.stepCount}</td>
-        <td>${fmtDt(o.maxEnd)}</td>
+        <td>${o.totalArea>0 ? o.totalArea.toFixed(2) : '–'}</td>
         <td ${late?'style="color:var(--red);font-weight:700"':''}>${o.overdueCount||0}</td>
+        <td>${fmtDt(o.maxEnd)}</td>
+        <td>${fmtS(o.exFactory)}</td>
         <td>${badge}</td>
       </tr>
       <tr class="xrow" id="${id}">
-        <td class="xcell" colspan="9"><div class="xinner">${buildLotView(o)}</div></td>
+        <td class="xcell" colspan="10"><div class="xinner">${buildLotView(o)}</div></td>
       </tr>
     `);
   }

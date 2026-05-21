@@ -126,7 +126,10 @@ tbody td.wrap{white-space:normal;max-width:280px}
 
 /* LOT ROUTE */
 .lot-route{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:14px;padding:10px 14px;background:#fff;border-radius:6px;border:1px solid var(--border)}
-.lot-route-step{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:4px;background:var(--blue-lt);color:var(--blue)}
+.lot-route-step{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:4px;transition:opacity .15s}
+.lot-route-step.has-lots{background:var(--blue);color:#fff}
+.lot-route-step.no-lots{background:#eceff1;color:#90a4ae}
+.lot-count{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.28);border-radius:10px;min-width:18px;height:16px;padding:0 4px;font-size:.65rem;font-weight:800;line-height:1}
 .lot-route-arrow{color:var(--muted);font-size:.8rem;flex-shrink:0}
 
 /* MATRIX */
@@ -680,19 +683,22 @@ function renderOverview() {
 // ═══════════════════════════════════════════════════════
 //  OVERVIEW — expanded lot view
 // ═══════════════════════════════════════════════════════
+// Determine which step a lot is currently at:
+// 1. If any task has in-backlog = 'in backlog', take the earliest such step in PCB order.
+// 2. Otherwise use the task with the earliest Start time.
+function getLotCurrentStep(tasks) {
+  const queued = tasks.filter(t => (t['in backlog']||'').toLowerCase() === 'in backlog');
+  if (queued.length > 0) {
+    return [...queued].sort((a,b)=>pcbRank(a['process_name'])-pcbRank(b['process_name']))[0]['process_name'] || null;
+  }
+  const byStart = tasks.filter(t=>t._start).sort((a,b)=>a._start-b._start);
+  return byStart[0]?.['process_name'] || null;
+}
+
 function buildLotView(o) {
   // Unique steps in PCB order
   const stepSet = new Set(o.tasks.map(t2=>t2['process_name']).filter(Boolean));
   const orderedSteps = [...stepSet].sort((a,b)=>pcbRank(a)-pcbRank(b));
-
-  // Route bar
-  const routeParts = orderedSteps.map((s,i)=>
-    `<span class="lot-route-step">${esc(s)}</span>${i<orderedSteps.length-1?'<span class="lot-route-arrow">→</span>':''}`
-  ).join('');
-  const routeHtml = `
-    <div class="xinner-title">${t('routeLabel')} (${orderedSteps.length} ${t('colSteps').toLowerCase()})</div>
-    <div class="lot-route">${routeParts}</div>
-  `;
 
   // Group tasks by lot
   const lotMap = new Map();
@@ -702,15 +708,29 @@ function buildLotView(o) {
     lotMap.get(lid).push(task);
   }
 
-  // Build lot rows: current step = first in PCB order; last end = max End
+  // Build lot rows and count lots per step simultaneously
+  const stepCounts = new Map(orderedSteps.map(s=>[s,0]));
+
   const lotRows = [...lotMap.entries()].map(([lid,tasks])=>{
-    const sorted  = [...tasks].sort((a,b)=>pcbRank(a['process_name'])-pcbRank(b['process_name']));
-    const curStep = sorted[0]?.['process_name']||'–';
+    const curStep = getLotCurrentStep(tasks) || '–';
     const ends    = tasks.map(t2=>t2._end).filter(Boolean);
     const lastEnd = ends.length ? new Date(Math.max(...ends)) : null;
     const isLate  = tasks.some(t2=>t2._late);
+    if (stepCounts.has(curStep)) stepCounts.set(curStep, stepCounts.get(curStep)+1);
     return {lid, curStep, lastEnd, isLate};
   }).sort((a,b)=>(a.lastEnd||0)-(b.lastEnd||0));
+
+  // Route bar — badge per step showing how many lots are currently there
+  const routeParts = orderedSteps.map((s,i)=>{
+    const n   = stepCounts.get(s)||0;
+    const cls = n>0 ? 'has-lots' : 'no-lots';
+    const arrow = i<orderedSteps.length-1 ? '<span class="lot-route-arrow">→</span>' : '';
+    return `<span class="lot-route-step ${cls}">${esc(s)}<span class="lot-count">${n}</span></span>${arrow}`;
+  }).join('');
+  const routeHtml = `
+    <div class="xinner-title">${t('routeLabel')} (${orderedSteps.length} ${t('colSteps').toLowerCase()})</div>
+    <div class="lot-route">${routeParts}</div>
+  `;
 
   const lotsTableRows = lotRows.map(lr=>`
     <tr>

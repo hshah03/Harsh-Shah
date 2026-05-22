@@ -200,7 +200,6 @@ tbody td.wrap{white-space:normal;max-width:280px}
     <button class="tab-btn" onclick="goTab('equipment',this)">🏭 Equipment OEE</button>
     <button class="tab-btn" onclick="goTab('target',this)" data-i="tab4">🎯 Target vs Scheduled</button>
     <button class="tab-btn" onclick="goTab('scenario',this)">🔬 Scenario Planner</button>
-    <button class="tab-btn" onclick="goTab('capacity',this)">⚖️ Capacity Gap</button>
   </nav>
 
   <!-- PANE 1: OVERVIEW -->
@@ -525,7 +524,8 @@ tbody td.wrap{white-space:normal;max-width:280px}
   </div>
 
   <!-- PANE: CAPACITY GAP -->
-  <div class="pane hidden" id="pane-capacity">
+  <!-- PANE: CAPACITY GAP (archived) -->
+  <div style="display:none" id="pane-capacity">
     <div class="page">
       <div class="toolbar" style="flex-wrap:wrap;gap:10px">
         <label data-i="capFrom">From</label><input type="date" class="inp" id="cap-from" oninput="renderCapacity()">
@@ -837,7 +837,6 @@ function toggleLang() {
   if (active.id === 'pane-target')      renderTarget();
   if (active.id === 'pane-scenario')    renderScenarioLang();
   if (active.id === 'pane-equipment')   renderEquipment();
-  if (active.id === 'pane-capacity')    renderCapacity();
 }
 
 function applyTranslations() {
@@ -1016,7 +1015,7 @@ function buildOrders() {
 // ═══════════════════════════════════════════════════════
 //  TABS
 // ═══════════════════════════════════════════════════════
-const TABS = ['overview','backlog','equipment','target','scenario','capacity'];
+const TABS = ['overview','backlog','equipment','target','scenario'];
 function goTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TABS[i]===name));
   document.querySelectorAll('.pane').forEach(p=>{p.classList.add('hidden');p.classList.remove('active');});
@@ -1026,7 +1025,6 @@ function goTab(name, btn) {
   if(name==='target')     renderTarget();
   if(name==='scenario')   initScenario();
   if(name==='equipment')  renderEquipment();
-  if(name==='capacity')   renderCapacity();
 }
 
 // ═══════════════════════════════════════════════════════

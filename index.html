@@ -199,8 +199,8 @@ tbody td.wrap{white-space:normal;max-width:280px}
     <button class="tab-btn" onclick="goTab('backlog',this)" data-i="tab2">⚙️ Process Backlog</button>
     <button class="tab-btn" onclick="goTab('equipment',this)">🏭 Equipment OEE</button>
     <button class="tab-btn" onclick="goTab('target',this)" data-i="tab4">🎯 Target vs Scheduled</button>
-    <button class="tab-btn" onclick="goTab('production',this)" data-i="tab3">📊 Production Area</button>
     <button class="tab-btn" onclick="goTab('scenario',this)">🔬 Scenario Planner</button>
+    <button class="tab-btn" onclick="goTab('capacity',this)">⚖️ Capacity Gap</button>
   </nav>
 
   <!-- PANE 1: OVERVIEW -->
@@ -295,7 +295,8 @@ tbody td.wrap{white-space:normal;max-width:280px}
   </div>
 
   <!-- PANE 3: PRODUCTION AREA -->
-  <div class="pane hidden" id="pane-production">
+  <!-- PANE: PRODUCTION AREA (archived) -->
+  <div style="display:none" id="pane-production">
     <div class="page">
       <div class="toolbar">
         <label data-i="from">From</label>
@@ -387,11 +388,11 @@ tbody td.wrap{white-space:normal;max-width:280px}
           <!-- Scenario orders -->
           <div class="tbl-wrap">
             <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-              <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)" data-i="scSelected">Scenario Orders <span id="sc-count" style="color:var(--blue)">0</span></div>
-              <button onclick="scClearAll()" style="font-size:.72rem;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline">Clear all</button>
+              <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)"><span data-i="scSelected">Scenario Orders</span> <span id="sc-count" style="color:var(--blue)">0</span></div>
+              <button onclick="scClearAll()" style="font-size:.72rem;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline" data-i="scClearAll">Clear all</button>
             </div>
             <div id="sc-selected-list" style="max-height:320px;overflow-y:auto;font-size:.82rem">
-              <div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem">No orders added yet.<br>Search and click an order above.</div>
+              <div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem" id="sc-no-orders-yet">No orders added yet.<br>Search and click an order above.</div>
             </div>
           </div>
         </div>
@@ -415,9 +416,9 @@ tbody td.wrap{white-space:normal;max-width:280px}
 
           <!-- Legend -->
           <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-size:.76rem;color:var(--muted)">
-            <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--green);margin-right:3px"></span>On time</span>
-            <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--amber);margin-right:3px"></span>At risk (≤3 days)</span>
-            <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--red);margin-right:3px"></span>Will miss deadline</span>
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--green);margin-right:3px"></span><span data-i="scLegendOnTime">On time</span></span>
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--amber);margin-right:3px"></span><span data-i="scLegendAtRisk">At risk (&#x2264;3 days)</span></span>
+            <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--red);margin-right:3px"></span><span data-i="scLegendMiss">Will miss deadline</span></span>
           </div>
 
           <!-- Results table -->
@@ -522,6 +523,64 @@ tbody td.wrap{white-space:normal;max-width:280px}
       </div>
     </div>
   </div>
+
+  <!-- PANE: CAPACITY GAP -->
+  <div class="pane hidden" id="pane-capacity">
+    <div class="page">
+      <div class="toolbar" style="flex-wrap:wrap;gap:10px">
+        <label data-i="capFrom">From</label><input type="date" class="inp" id="cap-from" oninput="renderCapacity()">
+        <label data-i="capTo">To</label><input type="date" class="inp" id="cap-to" oninput="renderCapacity()">
+        <div class="vsep"></div>
+        <label data-i="capQuick">Quick</label>
+        <div class="chip-group">
+          <button class="chip" onclick="capQuick('today')" data-i="capToday">Today</button>
+          <button class="chip" onclick="capQuick('3d')" data-i="cap3d">3 Days</button>
+          <button class="chip" onclick="capQuick('week')" data-i="capWeek">Week</button>
+          <button class="chip" onclick="capQuick('2w')" data-i="cap2w">2 Weeks</button>
+        </div>
+        <div class="vsep"></div>
+        <label data-i="capThreshold">Gap threshold</label>
+        <select class="inp" id="cap-thresh" onchange="renderCapacity()" style="min-width:100px">
+          <option value="50">Below 50%</option>
+          <option value="60" selected>Below 60%</option>
+          <option value="70">Below 70%</option>
+          <option value="80">Below 80%</option>
+        </select>
+        <span class="row-count ml-a" id="cap-cnt">—</span>
+      </div>
+      <div class="stat-row" id="cap-stats"></div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;font-size:.75rem;color:var(--muted);align-items:center">
+        <span style="font-weight:700;color:var(--text)">OEE:</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:#2e7d32;flex-shrink:0"></span><span data-i="capLegendOnTarget">≥80% on target</span></span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:#f9a825;flex-shrink:0"></span><span data-i="capLegendMod">50–79% moderate</span></span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:#c62828;flex-shrink:0"></span><span data-i="capLegendGap">Gap — no lots ready</span></span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:#e3f2fd;border:1px solid #90caf9;flex-shrink:0"></span><span data-i="capLegendAction">Gap + lots ready to pull</span></span>
+        <span style="margin-left:auto;font-size:.72rem" data-i="capClickHint">Click any coloured cell for details</span>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-scr">
+          <table id="cap-table" style="border-collapse:separate;border-spacing:2px">
+            <thead id="cap-head"></thead>
+            <tbody id="cap-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Capacity Gap Modal -->
+<div id="cap-modal-overlay">
+  <div id="cap-modal" style="background:#fff;border-radius:10px;width:min(860px,95vw);max-height:85vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:sticky;top:0;background:#fff;z-index:1">
+      <div>
+        <div id="cap-modal-title" style="font-weight:700;font-size:.92rem"></div>
+        <div id="cap-modal-sub" style="font-size:.76rem;color:var(--muted)"></div>
+      </div>
+      <button onclick="capCloseModal()" style="margin-left:auto;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);line-height:1">&times;</button>
+    </div>
+    <div id="cap-modal-body" style="padding:16px 20px"></div>
+  </div>
 </div>
 
 <style>
@@ -544,6 +603,9 @@ tbody td.wrap{white-space:normal;max-width:280px}
 .eq-stn-row:hover td{background:#f6f9ff}
 .eq-batch{background:#fffde7}
 .eq-batch:hover td{background:#fff8e0}
+.cap-cell{text-align:center;padding:6px 4px;font-size:.72rem;font-weight:700;transition:opacity .1s}
+.cap-cell:hover{opacity:.8}
+#cap-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center}
 </style>
 
 <script>
@@ -678,6 +740,18 @@ const TRANS = {
     eqBatchOpp:'⚡ Batching Opportunity',
     eqBatchDesc:'Same PN runs non-consecutively — resequencing to batch together eliminates avoidable setups.',
     eqScheduled:'Scheduled', eqIdle:'Idle',
+    scClearAll:'Clear all', scSearchPlaceholder:'Search part number…',
+    scNoOrdersYet:'No orders added yet. Search and click an order above.',
+    scLegendOnTime:'On time', scLegendAtRisk:'At risk (≤3 days)', scLegendMiss:'Will miss deadline',
+    capTitle:'Capacity Gap', capFrom:'From', capTo:'To', capQuick:'Quick',
+    capThreshold:'Gap threshold', capBelow50:'Below 50%', capBelow60:'Below 60%',
+    capBelow70:'Below 70%', capBelow80:'Below 80%',
+    capToday:'Today', cap3d:'3 Days', capWeek:'Week', cap2w:'2 Weeks',
+    capLegendOnTarget:'≥80% on target', capLegendMod:'50–79% moderate',
+    capLegendGap:'Gap — no lots ready', capLegendAction:'Gap + lots ready to pull',
+    capClickHint:'Click any coloured cell for details',
+    capGapCells:'Gap Cells', capTotalIdle:'Total Idle', capActionable:'Actionable', capAreaGain:'Area Gain',
+    capProcGroup:'Process Group',
   },
   zh: {
     appTitle:'生产计划看板', uploadNew:'上传新文件',
@@ -735,6 +809,18 @@ const TRANS = {
     eqBatchOpp:'⚡ 合批机会',
     eqBatchDesc:'同一料号非连续排产 — 重新排序可消除不必要的换型设置。',
     eqScheduled:'生产中', eqIdle:'空闲',
+    scClearAll:'清除全部', scSearchPlaceholder:'搜索料号…',
+    scNoOrdersYet:'尚未添加订单，请在上方搜索并点击订单。',
+    scLegendOnTime:'准时', scLegendAtRisk:'有风险（≤3天）', scLegendMiss:'将错过截止日',
+    capTitle:'产能缺口', capFrom:'开始', capTo:'结束', capQuick:'快选',
+    capThreshold:'缺口阈值', capBelow50:'低于50%', capBelow60:'低于60%',
+    capBelow70:'低于70%', capBelow80:'低于80%',
+    capToday:'今天', cap3d:'3天', capWeek:'本周', cap2w:'2周',
+    capLegendOnTarget:'≥80% 达标', capLegendMod:'50–79% 一般',
+    capLegendGap:'产能缺口 — 无可提前批次', capLegendAction:'产能缺口 + 可提前批次',
+    capClickHint:'点击彩色单元格查看详情',
+    capGapCells:'缺口格', capTotalIdle:'总空闲时间', capActionable:'可操作', capAreaGain:'潜在面积增益',
+    capProcGroup:'工序组',
   }
 };
 
@@ -748,10 +834,10 @@ function toggleLang() {
   const active = document.querySelector('.pane.active');
   if (active.id === 'pane-overview')    renderOverview();
   if (active.id === 'pane-backlog')     renderBacklog();
-  if (active.id === 'pane-production')  renderProduction();
   if (active.id === 'pane-target')      renderTarget();
   if (active.id === 'pane-scenario')    renderScenarioLang();
   if (active.id === 'pane-equipment')   renderEquipment();
+  if (active.id === 'pane-capacity')    renderCapacity();
 }
 
 function applyTranslations() {
@@ -866,6 +952,8 @@ async function loadXlsx(file) {
     // Equipment OEE — 3 days from base
     setDI('eq-from', baseDateStr);
     setDI('eq-to',   ymd(addDays(baseDate, 2)));
+    setDI('cap-from', baseDateStr);
+    setDI('cap-to',   ymd(addDays(baseDate, 13)));
 
     // Target vs Scheduled — day after base date
     const tgDate = ymd(addDays(baseDate, 1));
@@ -928,17 +1016,17 @@ function buildOrders() {
 // ═══════════════════════════════════════════════════════
 //  TABS
 // ═══════════════════════════════════════════════════════
-const TABS = ['overview','backlog','equipment','target','production','scenario'];
+const TABS = ['overview','backlog','equipment','target','scenario','capacity'];
 function goTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TABS[i]===name));
   document.querySelectorAll('.pane').forEach(p=>{p.classList.add('hidden');p.classList.remove('active');});
   const pane = document.getElementById('pane-'+name);
   pane.classList.remove('hidden'); pane.classList.add('active');
   if(name==='backlog')    renderBacklog();
-  if(name==='production') renderProduction();
   if(name==='target')     renderTarget();
   if(name==='scenario')   initScenario();
   if(name==='equipment')  renderEquipment();
+  if(name==='capacity')   renderCapacity();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1633,10 +1721,12 @@ function scSetDeadline(pn, val) {
 }
 
 function renderSelectedList() {
-  document.getElementById('sc-count').textContent = SC.changes.size;
+  const scCount = document.getElementById('sc-count');
+  if (!scCount) return;
+  scCount.textContent = SC.changes.size;
   const el = document.getElementById('sc-selected-list');
   if (!SC.changes.size) {
-    el.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem">No orders added yet.<br>Search and click an order above.</div>';
+    el.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem" id="sc-no-orders-yet">No orders added yet.<br>Search and click an order above.</div>';
     return;
   }
   let html = '';
@@ -1833,20 +1923,23 @@ function scExport() {
 }
 
 function renderScenarioLang() {
-  // Update static labels via data-i (applyTranslations handles data-i elements)
-  // Re-render dynamic content that has hardcoded strings
   renderSelectedList();
+  // Update search placeholder
+  const srch = document.getElementById('sc-search');
+  if (srch) srch.placeholder = t('scSearchPlaceholder') || 'Search part number…';
   // Update results table headers if visible
   const wrap = document.getElementById('sc-results-wrap');
   if (wrap && wrap.style.display !== 'none') {
-    // Update column headers
     const headers = wrap.querySelectorAll('thead th');
     const keys = ['scPN','scChange','scDeadline','scBaseline','scSimEnd','scShift','scBuffer','scOutcome'];
     headers.forEach((th,i) => { if(keys[i]) th.textContent = t(keys[i]); });
   }
   // Update no-results placeholder
   const nr = document.getElementById('sc-no-results');
-  if (nr) nr.innerHTML = `Add orders on the left, configure changes, then click <strong>${t('scRun')}</strong>.`;
+  if (nr) nr.innerHTML = t('scNoResults') || 'Add orders on the left, configure changes, then click <strong>Run Simulation</strong>.';
+  // Update no-orders-yet placeholder
+  const no = document.getElementById('sc-no-orders-yet');
+  if (no) no.innerHTML = t('scNoOrdersYet') || 'No orders added yet.<br>Search and click an order above.';
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2159,6 +2252,329 @@ function buildStationDetail(s, winS, winE, slotMs, slotLabel, numDays) {
       </table></div>
     </div>`;
   return html;
+}
+
+// ═══════════════════════════════════════════════════════
+//  CAPACITY GAP
+// ═══════════════════════════════════════════════════════
+// Process groups based on actual factory flow (from process charts)
+const CAP_GROUPS = [
+  {
+    key:'pth', label:'PTH Line',
+    procs:['沉铜前处理','除胶渣','沉铜','板电'],
+    entryProc:'沉铜前处理',
+    eligibleFn: s => s.has('沉铜'),
+  },
+  {
+    key:'eclipse', label:'Eclipse Line',
+    procs:['除胶渣','日蚀','板电'],
+    entryProc:'日蚀',
+    eligibleFn: s => s.has('日蚀') && !s.has('沉铜'),
+  },
+  {
+    key:'hasl', label:'HASL (喷锡)',
+    procs:['喷锡前处理','喷锡','喷锡后处理'],
+    entryProc:'喷锡前处理',
+    eligibleFn: s => s.has('喷锡'),
+  },
+  {
+    key:'enig', label:'ENIG (沉金)',
+    procs:['沉金前处理','沉金包边','沉金线','沉金后处理'],
+    entryProc:'沉金前处理',
+    eligibleFn: s => s.has('沉金线'),
+  },
+  {
+    key:'imtin', label:'Immersion Tin (沉锡)',
+    procs:['沉锡前处理','沉锡'],
+    entryProc:'沉锡前处理',
+    eligibleFn: s => s.has('沉锡'),
+  },
+];
+
+function capQuick(key) {
+  const today=dayOf(new Date()); let s,e;
+  if(key==='today'){s=today;e=today;}
+  else if(key==='3d'){s=today;e=addDays(today,2);}
+  else if(key==='week'){s=today;e=addDays(today,6);}
+  else{s=today;e=addDays(today,13);}
+  setDI('cap-from',ymd(s)); setDI('cap-to',ymd(e));
+  renderCapacity();
+}
+
+function renderCapacity() {
+  if (!G.rows || !G.rows.length) return;
+  const fromStr=document.getElementById('cap-from').value;
+  const toStr  =document.getElementById('cap-to').value;
+  const thresh =parseInt(document.getElementById('cap-thresh').value)||60;
+  if (!fromStr||!toStr) return;
+
+  const from=new Date(fromStr+'T00:00:00');
+  const to  =new Date(toStr+'T00:00:00');
+  const winE=addDays(to,1).getTime();
+  const days=[];
+  for (let d=new Date(from);d.getTime()<winE;d=addDays(d,1)) days.push(new Date(d));
+
+  // Build lot maps
+  const lotProcStart=new Map(), lotProcEnd=new Map(), lotMeta=new Map();
+  for (const r of G.rows) {
+    if (!r._lot||!r['process_name']) continue;
+    const lot=r._lot, proc=r['process_name'];
+    if (!lotProcStart.has(lot)) lotProcStart.set(lot,new Map());
+    if (!lotProcEnd.has(lot))   lotProcEnd.set(lot,new Map());
+    if (!lotMeta.has(lot))      lotMeta.set(lot,{pn:r['part number']||'',area:r._area||0,exFac:r._exFac,procSet:new Set()});
+    const sm=lotProcStart.get(lot);
+    if (r._start&&(!sm.has(proc)||r._start<sm.get(proc))) sm.set(proc,r._start);
+    const em=lotProcEnd.get(lot);
+    if (r._end&&(!em.has(proc)||r._end>em.get(proc))) em.set(proc,r._end);
+    lotMeta.get(lot).procSet.add(proc);
+  }
+
+  // Build per-group data
+  const groupData = CAP_GROUPS.map(grp => {
+    const entryRank=pcbRank(grp.entryProc);
+    // Day map: aggregate ALL procs in group
+    const procDayMap=new Map();
+    for (const r of G.rows) {
+      if (!r._start||!r._end||!grp.procs.includes(r['process_name'])) continue;
+      const dk=ymd(r._start);
+      if (!procDayMap.has(dk)) procDayMap.set(dk,[]);
+      procDayMap.get(dk).push(r);
+    }
+    // Pullable lots
+    const pullableLots=[];
+    for (const [lot,sm] of lotProcStart) {
+      const meta=lotMeta.get(lot);
+      if (!meta||!grp.eligibleFn(meta.procSet)) continue;
+      const entryStart=sm.get(grp.entryProc);
+      if (!entryStart) continue;
+      const em=lotProcEnd.get(lot)||new Map();
+      let latestPrecEnd=null;
+      for (const [proc,endDate] of em) {
+        if (pcbRank(proc)<entryRank&&(!latestPrecEnd||endDate>latestPrecEnd)) latestPrecEnd=endDate;
+      }
+      pullableLots.push({lot,pn:meta.pn,area:meta.area,exFac:meta.exFac,entryStart,latestPrecEnd});
+    }
+    return {...grp,procDayMap,pullableLots};
+  });
+
+  // Build cell map: grpKey → dayStr → cell
+  const cellMap={};
+  const allCells=[];
+  for (const grp of groupData) {
+    cellMap[grp.key]={};
+    for (const day of days) {
+      const dk=ymd(day);
+      const dayRows=grp.procDayMap.get(dk)||[];
+      const intervals=dayRows.filter(r=>r._end).map(r=>({s:r._start.getTime(),e:r._end.getTime()}));
+      const merged=mergeIntervals(intervals);
+      const ds=day.getTime(),de=ds+86400000;
+      let fabMs=0;
+      for (const iv of merged){const s=Math.max(iv.s,ds),e=Math.min(iv.e,de);if(e>s)fabMs+=(e-s);}
+      const fabHrs=fabMs/3600000;
+      const oee=Math.min(100,Math.round(fabMs/86400000*100));
+      const gapHrs=Math.max(0,24-fabHrs);
+      const lotCount=new Set(dayRows.map(r=>r._lot).filter(Boolean)).size;
+      const pullDayEnd=addDays(day,1);
+      const pullable=(grp.pullableLots||[]).filter(q=>
+        q.entryStart>day&&q.latestPrecEnd&&q.latestPrecEnd<=pullDayEnd&&q.entryStart.getTime()<winE
+      ).sort((a,b)=>(a.exFac||new Date(9e15))-(b.exFac||new Date(9e15)));
+      const areaGain=pullable.reduce((s,q)=>s+q.area,0);
+      const cell={grp,day,dk,fabHrs,oee,gapHrs,lotCount,pullable,areaGain,hasData:dayRows.length>0};
+      cellMap[grp.key][dk]=cell;
+      if (dayRows.length>0) allCells.push(cell);
+    }
+  }
+
+  // Stats
+  const gapCells=allCells.filter(c=>c.oee<thresh);
+  const cntEl=document.getElementById('cap-cnt');
+  const statsEl=document.getElementById('cap-stats');
+  if(cntEl) cntEl.textContent=gapCells.length+' gap cells';
+  if(statsEl) statsEl.innerHTML=`
+    <div class="stat s-red"><div class="stat-lbl">${t('capGapCells')}</div><div class="stat-val">${gapCells.length}</div><div class="stat-sub">below ${thresh}% OEE</div></div>
+    <div class="stat s-amber"><div class="stat-lbl">${t('capTotalIdle')}</div><div class="stat-val">${fmtN(gapCells.reduce((s,c)=>s+c.gapHrs,0),1)}h</div><div class="stat-sub">capacity unused</div></div>
+    <div class="stat s-green"><div class="stat-lbl">${t('capActionable')}</div><div class="stat-val">${gapCells.filter(c=>c.pullable.length>0).length}</div><div class="stat-sub">gaps with lots ready</div></div>
+    <div class="stat s-blue"><div class="stat-lbl">${t('capAreaGain')}</div><div class="stat-val">${fmtN(gapCells.reduce((s,c)=>s+c.areaGain,0),0)}</div><div class="stat-sub">sqft if all pulled</div></div>
+  `;
+
+  // Render heatmap
+  const thead=document.getElementById('cap-head');
+  const tbody=document.getElementById('cap-body');
+  if(!thead||!tbody) return;
+
+  let headHtml='<tr><th style="position:sticky;left:0;background:#f8fafc;min-width:150px;z-index:3" data-i="capProcGroup">Process Group</th>';
+  for (const day of days) {
+    headHtml+=`<th style="min-width:64px;text-align:center;font-size:.67rem;padding:6px 2px">${day.toLocaleDateString('en-US',{weekday:'short'})}<br>${day.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</th>`;
+  }
+  headHtml+='</tr>';
+  thead.innerHTML=headHtml;
+
+  tbody.innerHTML='';
+  for (const grp of groupData) {
+    let rowHtml=`<tr><td style="position:sticky;left:0;background:#fff;font-weight:700;font-size:.79rem;padding:6px 12px;border-right:2px solid var(--border);white-space:nowrap;z-index:2">${esc(grp.label)}</td>`;
+    for (const day of days) {
+      const cell=cellMap[grp.key][ymd(day)];
+      if (!cell||!cell.hasData) { rowHtml+='<td style="background:#f8fafc;min-width:64px"></td>'; continue; }
+      let bg,tc;
+      if      (cell.oee>=80)                 { bg='#2e7d32'; tc='#fff'; }
+      else if (cell.oee>=50)                 { bg='#f9a825'; tc='#4a2c00'; }
+      else if (cell.pullable.length>0)       { bg='#e3f2fd'; tc='#0d47a1'; }
+      else                                    { bg='#c62828'; tc='#fff'; }
+      const isGap=cell.oee<thresh;
+      const ring=isGap&&cell.pullable.length>0?'outline:2px solid #1565c0;outline-offset:-2px;':'';
+      const click=isGap?`onclick="capOpenModal('${grp.key}','${ymd(day)}')" style="cursor:pointer;background:${bg};color:${tc};${ring}"`:
+                        `style="background:${bg};color:${tc}"`;
+      rowHtml+=`<td class="cap-cell" ${click} title="${grp.label} ${ymd(day)} | OEE:${cell.oee}% Gap:${fmtN(cell.gapHrs,1)}h Lots:${cell.pullable.length}">
+        ${cell.oee}%${isGap&&cell.pullable.length>0?'<br><span style="font-size:.62rem">'+cell.pullable.length+'&#9654;</span>':''}
+      </td>`;
+    }
+    rowHtml+='</tr>';
+    tbody.insertAdjacentHTML('beforeend',rowHtml);
+  }
+
+  window._capCellMap=cellMap;
+  window._capGroupData=groupData;
+}
+
+function capOpenModal(grpKey,dk) {
+  const grp=(window._capGroupData||[]).find(g=>g.key===grpKey);
+  const cell=window._capCellMap&&window._capCellMap[grpKey]&&window._capCellMap[grpKey][dk];
+  if (!grp||!cell) return;
+
+  document.getElementById('cap-modal-title').textContent=
+    grp.label+' — '+cell.day.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  document.getElementById('cap-modal-sub').textContent=
+    'OEE: '+cell.oee+'%  ·  Fab: '+fmtN(cell.fabHrs,1)+'h  ·  Gap: '+fmtN(cell.gapHrs,1)+'h  ·  '+cell.lotCount+' lots currently scheduled';
+
+  const body=document.getElementById('cap-modal-body');
+
+  if (!cell.pullable.length) {
+    body.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">No part numbers are ready to pull into this process on this day — all eligible lots still have preceding steps to complete.</div>';
+  } else {
+    // Group pullable lots by PN
+    const pnMap = new Map();
+    for (const q of cell.pullable) {
+      if (!pnMap.has(q.pn)) pnMap.set(q.pn, { pn:q.pn, lots:[], area:0, exFac:q.exFac, entryStart:q.entryStart });
+      const g = pnMap.get(q.pn);
+      g.lots.push(q);
+      g.area += q.area;
+      // Keep tightest exFac
+      if (q.exFac && (!g.exFac || q.exFac < g.exFac)) g.exFac = q.exFac;
+      // Keep earliest scheduled start
+      if (q.entryStart < g.entryStart) g.entryStart = q.entryStart;
+    }
+    const pnList = [...pnMap.values()].sort((a,b)=>(a.exFac||new Date(9e15))-(b.exFac||new Date(9e15)));
+
+    const rows = pnList.map((p,i) => {
+      const daysEarlier = Math.round((p.entryStart - cell.day)/86400000);
+      const curBuf = p.exFac ? Math.round((p.exFac - p.entryStart)/86400000) : null;
+      const newBuf = p.exFac ? Math.round((p.exFac - cell.day)/86400000)     : null;
+      const gain   = (curBuf!==null&&newBuf!==null) ? newBuf - curBuf : null;
+      const rc = newBuf===null?'#90a4ae':newBuf<0?'#c62828':newBuf<3?'#f57f17':'#2e7d32';
+      const rl = newBuf===null?'No date':newBuf<0?'Miss CDD':newBuf<3?'Tight':'Comfortable';
+      return `<tr>
+        <td style="font-weight:700">${esc(p.pn)}</td>
+        <td class="num">${p.lots.length}</td>
+        <td class="num">${fmtN(p.area,0)}</td>
+        <td class="num">${fmtS(p.exFac)}</td>
+        <td class="num" style="color:var(--muted)">${fmtS(p.entryStart)}</td>
+        <td class="num" style="color:#2e7d32;font-weight:700">+${daysEarlier}d</td>
+        <td class="num">${curBuf!==null?(curBuf>=0?'+':'')+curBuf+'d':'–'}</td>
+        <td class="num" style="color:${rc};font-weight:700">${newBuf!==null?(newBuf>=0?'+':'')+newBuf+'d':'–'}</td>
+        <td class="num" style="color:#2e7d32">${gain!==null?'+'+gain+'d':''}</td>
+        <td><span style="background:${rc}22;color:${rc};border:1px solid ${rc}55;border-radius:4px;padding:2px 7px;font-size:.7rem;font-weight:700">${rl}</span></td>
+        <td>
+          <button onclick="capCopyInstruction('${esc(p.pn)}','${esc(grp.label)}','${dk}',${daysEarlier})"
+            style="padding:3px 10px;border-radius:4px;border:1px solid var(--blue);background:#fff;color:var(--blue);font-size:.72rem;cursor:pointer;white-space:nowrap">
+            Copy instruction
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const totalArea = pnList.reduce((s,p)=>s+p.area,0);
+    const instrAll  = capBuildInstructions(pnList, grp.label, cell.day);
+
+    body.innerHTML=`
+      <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-size:.82rem;color:var(--muted)">
+          <strong style="color:var(--text)">${pnList.length} part number${pnList.length!==1?'s':''}</strong> ready to pull &nbsp;·&nbsp;
+          <strong style="color:var(--blue)">${fmtN(totalArea,0)} sqft potential area gain</strong>
+        </span>
+        <button onclick="capCopyAll()" style="margin-left:auto;padding:5px 14px;border-radius:5px;border:1.5px solid var(--green);background:#fff;color:var(--green);font-size:.78rem;font-weight:700;cursor:pointer">
+          📋 Copy all instructions
+        </button>
+      </div>
+      <div id="cap-copy-confirm" style="display:none;padding:8px 12px;background:#e8f5e9;border-radius:6px;color:#2e7d32;font-size:.78rem;font-weight:700;margin-bottom:10px">
+        ✓ Copied to clipboard
+      </div>
+      <div style="overflow-x:auto"><table style="font-size:.78rem;width:100%">
+        <thead><tr>
+          <th>Part Number</th><th class="num">Lots</th><th class="num">Area (sqft)</th>
+          <th class="num">CDD</th><th class="num">Currently Starts</th>
+          <th class="num">Pull Forward</th><th class="num">Current Buffer</th>
+          <th class="num">New Buffer</th><th class="num">Buffer Gain</th>
+          <th>Risk</th><th>Action</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    `;
+    // Store for copy-all
+    window._capCurrentInstructions = instrAll;
+    window._capCurrentPNs = pnList;
+    window._capCurrentGrp = grp;
+    window._capCurrentDay = cell.day;
+  }
+
+  const ov=document.getElementById('cap-modal-overlay');
+  ov.style.display='flex';
+  ov.onclick=e=>{if(e.target===ov)capCloseModal();};
+}
+
+function capBuildInstructions(pnList, grpLabel, day) {
+  const dateStr = day.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  let text = `Capacity Gap Action — ${grpLabel}\n`;
+  text += `Pull forward request for ${dateStr}\n`;
+  text += `${'─'.repeat(50)}\n`;
+  for (const p of pnList) {
+    const daysEarlier = Math.round((p.entryStart - day)/86400000);
+    const curBuf = p.exFac ? Math.round((p.exFac - p.entryStart)/86400000) : null;
+    const newBuf = p.exFac ? Math.round((p.exFac - day)/86400000) : null;
+    text += `PN: ${p.pn}\n`;
+    text += `  Lots: ${p.lots.length}  |  Area: ${Math.round(p.area)} sqft  |  CDD: ${p.exFac?fmtS(p.exFac):'–'}\n`;
+    text += `  Currently starts ${grpLabel}: ${fmtS(p.entryStart)}\n`;
+    text += `  Requested start: ${fmtS(day)} (${daysEarlier} days earlier)\n`;
+    if (curBuf!==null&&newBuf!==null) text += `  CDD buffer: ${curBuf>=0?'+':''}${curBuf}d → ${newBuf>=0?'+':''}${newBuf}d (gain: +${newBuf-curBuf}d)\n`;
+    text += '\n';
+  }
+  text += `Generated: ${new Date().toLocaleString()}`;
+  return text;
+}
+
+function capCopyInstruction(pn, grpLabel, dk, daysEarlier) {
+  const pnList = (window._capCurrentPNs||[]).filter(p=>p.pn===pn);
+  const day = window._capCurrentDay;
+  if (!pnList.length||!day) return;
+  const text = capBuildInstructions(pnList, grpLabel, day);
+  navigator.clipboard.writeText(text).then(()=>capShowCopyConfirm()).catch(()=>prompt('Copy this:',text));
+}
+
+function capCopyAll() {
+  const text = window._capCurrentInstructions;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(()=>capShowCopyConfirm()).catch(()=>prompt('Copy this:',text));
+}
+
+function capShowCopyConfirm() {
+  const el = document.getElementById('cap-copy-confirm');
+  if (!el) return;
+  el.style.display='block';
+  setTimeout(()=>{ el.style.display='none'; }, 2500);
+}
+
+function capCloseModal(){
+  const ov=document.getElementById('cap-modal-overlay');
+  if(ov) ov.style.display='none';
 }
 
 // ═══════════════════════════════════════════════════════

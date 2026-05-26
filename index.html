@@ -232,6 +232,7 @@ tbody td.wrap{white-space:normal;max-width:280px}
                 <th class="sortable" data-k="orderType" data-i="colOrderType">Order Type</th>
                 <th class="sortable num" data-k="lotCount" data-i="colLots">Lots</th>
                 <th class="sortable num" data-k="stepCount" data-i="colSteps">Steps</th>
+                <th class="sortable num" data-k="totalQty" data-i="colTotalPanels">Total Panels</th>
                 <th class="sortable num" data-k="totalArea" data-i="colAreaOv">Area (m²)</th>
                 <th class="sortable num" data-k="overdueCount" data-i="colOverdue">Overdue Tasks</th>
                 <th class="sortable num" data-k="maxEnd" data-i="colEstEnd">Est. End Date</th>
@@ -280,10 +281,10 @@ tbody td.wrap{white-space:normal;max-width:280px}
                 <th class="num" data-i="colArea">Total Area (m²)</th>
                 <th class="num" data-i="colOverdueTasks">Overdue Tasks</th>
                 <th class="num" data-i="colOverduePct">Overdue %</th>
-                <th class="num">Fab Time (hrs)</th>
-                <th class="num">Idle Time (hrs)</th>
-                <th class="num">Est. OEE %</th>
-                <th data-i="colOrderTypes">Order Types</th>
+                <th class="num" data-i="colFabTime" data-i="eqColFab">In Production (hrs)</th>
+                <th class="num" data-i="colIdleTime" data-i="eqColIdle">Idle Time (hrs)</th>
+                <th class="num" data-i="colEstOEE">Est. OEE %</th>
+                <th data-i="colOrderTypes">${t("colOrderType")}</th>
               </tr>
             </thead>
             <tbody id="bl-body"></tbody>
@@ -430,7 +431,7 @@ tbody td.wrap{white-space:normal;max-width:280px}
               <table>
                 <thead>
                   <tr>
-                    <th>Part Number</th>
+                    <th>${t("colPN")}</th>
                     <th>Change</th>
                     <th class="num">Ex-Factory / Deadline</th>
                     <th class="num">Baseline End</th>
@@ -454,7 +455,7 @@ tbody td.wrap{white-space:normal;max-width:280px}
               <table>
                 <thead>
                   <tr>
-                    <th>Part Number</th>
+                    <th>${t("colPN")}</th>
                     <th>Reason</th>
                     <th class="num">Ex-Factory</th>
                     <th class="num">Baseline End</th>
@@ -509,9 +510,9 @@ tbody td.wrap{white-space:normal;max-width:280px}
                 <th class="num" data-i="eqColTasks">Lots</th>
                 <th class="num" data-i="eqColPNs">Unique PNs</th>
                 <th class="num" data-i="eqColCO">Changeovers</th>
-                <th class="num" data-i="eqColFab">Fab Time (hrs)</th>
+                <th class="num" data-i="eqColFab" data-i="eqColFab">In Production (hrs)</th>
                 <th class="num" data-i="eqColAvgCt">Avg CT (hrs/lot)</th>
-                <th class="num" data-i="eqColIdle">Idle Time (hrs)</th>
+                <th class="num" data-i="eqColIdle" data-i="eqColIdle">Idle Time (hrs)</th>
                 <th class="num" data-i="eqColOEE">OEE %</th>
                 <th data-i="eqColBar">Timeline</th>
               </tr>
@@ -569,6 +570,8 @@ tbody td.wrap{white-space:normal;max-width:280px}
   </div>
 </div>
 
+</div>
+
 <!-- Capacity Gap Modal -->
 <div id="cap-modal-overlay">
   <div id="cap-modal" style="background:#fff;border-radius:10px;width:min(860px,95vw);max-height:85vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)">
@@ -580,6 +583,27 @@ tbody td.wrap{white-space:normal;max-width:280px}
       <button onclick="capCloseModal()" style="margin-left:auto;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);line-height:1">&times;</button>
     </div>
     <div id="cap-modal-body" style="padding:16px 20px"></div>
+  </div>
+</div>
+
+<!-- Lot Plan Drawer -->
+<div id="lot-drawer-overlay" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.35)" onclick="closeLotDrawer()"></div>
+<div id="lot-drawer" style="display:none;position:fixed;top:0;right:0;width:min(700px,95vw);height:100vh;background:#fff;z-index:601;box-shadow:-4px 0 24px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease">
+  <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;flex-shrink:0;background:#fff">
+    <div style="flex:1;min-width:0">
+      <div id="lot-drawer-title" style="font-weight:800;font-size:.95rem;color:var(--hdr)"></div>
+      <div id="lot-drawer-sub" style="font-size:.76rem;color:var(--muted);margin-top:2px"></div>
+    </div>
+    <button onclick="closeLotDrawer()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);padding:0 4px;flex-shrink:0;line-height:1">&times;</button>
+  </div>
+  <!-- Timeline bar -->
+  <div id="lot-drawer-timeline" style="padding:10px 18px;border-bottom:1px solid var(--border);flex-shrink:0;background:#f8fafc"></div>
+  <!-- Steps table -->
+  <div style="flex:1;overflow-y:auto;padding:0">
+    <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+      <thead id="lot-drawer-head" style="position:sticky;top:0;z-index:2"></thead>
+      <tbody id="lot-drawer-body"></tbody>
+    </table>
   </div>
 </div>
 
@@ -603,6 +627,13 @@ tbody td.wrap{white-space:normal;max-width:280px}
 .eq-stn-row:hover td{background:#f6f9ff}
 .eq-batch{background:#fffde7}
 .eq-batch:hover td{background:#fff8e0}
+/* Lot drawer */
+.lot-link{color:var(--blue);cursor:pointer;text-decoration:underline;text-decoration-style:dotted;font-family:monospace;font-size:.78rem;white-space:nowrap}
+.lot-link:hover{color:var(--navy)}
+#lot-drawer{display:flex!important}
+.lot-step-done td{background:#f0fdf4}
+.lot-step-active td{background:#eff6ff}
+.lot-step-sched td{background:#fff}
 .cap-cell{text-align:center;padding:6px 4px;font-size:.72rem;font-weight:700;transition:opacity .1s}
 .cap-cell:hover{opacity:.8}
 #cap-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center}
@@ -694,8 +725,8 @@ const TRANS = {
     feat3:'Production Area — expected area output by process & day',
     search:'Search', orderType:'Order Type', status:'Status',
     all:'All', overdue:'Overdue', onTrack:'On Track',
-    colPN:'PN', colOrderType:'Order Type', colExFactory:'Ex-Factory Date',
-    colLots:'Lots', colSteps:'Steps', colEstEnd:'Est. End Date', colAreaOv:'Area (m²)',
+    colPN:'PN', colPartNumber:'PN', colOrderType:'Order Type', colExFactory:'EXF (CDD - 2 days)',
+    colLots:'Lots', colSteps:'Steps', colEstEnd:'Est. Completion Date', colAreaOv:'Area (m²)',
     colOverdue:'Overdue Tasks', colStatus:'Status',
     statTotal:'Total Orders', statOverdue:'Overdue Orders',
     statOk:'On Track', statProc:'Processes Involved',
@@ -705,12 +736,12 @@ const TRANS = {
     from:'From', to:'To', quick:'Quick', process:'Process',
     today:'Today', thisWeek:'This Week', next2w:'Next 2 Weeks',
     thisMonth:'This Month',
-    colProcess:'Process Step', colTasks:'Tasks', colArea:'Total Area (m²)',
-    colOverdueTasks:'Overdue Tasks', colOverduePct:'Overdue %', colOrderTypes:'Order Types',
+    colProcess:'Process Step', colTasks:'Lots', colArea:'Total Area (m²)',
+    colOverdueTasks:'Overdue Tasks', colOverduePct:'Overdue %', colOrderTypes:'Order Type',
     granularity:'Granularity', daily:'Daily', weekly:'Weekly',
     routeLabel:'Production Route', lotsLabel:'Lots',
-    lotId:'Lot ID', currentStep:'Current Step', estEnd:'Est. Completion', lotStatus:'Status',
-    badgeOverdue:'⚠ Overdue', badgeOk:'✓ On Track', badgeLate:'Late', badgeGood:'OK',
+    lotId:'Lot ID', currentStep:'Current Step', estEnd:'Est. Completion Date', lotStatus:'Status',
+    badgeOverdue:'Late', badgeOk:'✓ On Track', badgeLate:'Late', badgeGood:'On Track',
     allUrgent:'ALL URGENT', urgent:'Urgent', urgentOrders:'🚨 Urgent',
     uniqueParts:'unique part numbers', ofTotal:'of total',
     tab4:'🎯 Target vs Scheduled',
@@ -726,7 +757,7 @@ const TRANS = {
     scUrgent:'🚨 Urgent — ASAP', scMustBy:'📅 Must complete by',
     scOnTime:'Scenario On Time', scAtRisk:'Scenario At Risk',
     scWillMiss:'Scenario Will Miss', scNewlyLate:'Newly Late (Consequence)',
-    scPN:'Part Number', scChange:'Change', scDeadline:'Ex-Factory / Deadline',
+    scPN:'PN', scChange:'Change', scDeadline:'EXF (CDD - 2 days)',
     scBaseline:'Baseline End', scSimEnd:'Sim. End', scShift:'Shift', scBuffer:'Buffer', scOutcome:'Outcome',
     scConsequences:'Consequences', scImpacted:'Pushed out',
     scNoPNs:'No orders added yet. Search and click an order above.',
@@ -736,7 +767,7 @@ const TRANS = {
     eqProcesses:'processes', eqProcOEE:'Process OEE',
     eqColStation:'Station / Equipment', eqColTasks:'Lots',
     eqColPNs:'Unique PNs', eqColCO:'Changeovers',
-    eqColFab:'Fab Time (hrs)', eqColAvgCt:'Avg CT (hrs/lot)', eqColIdle:'Idle Time (hrs)', eqColOEE:'OEE %', eqColBar:'Timeline',
+    eqColFab:'In Production (hrs)', eqColAvgCt:'Avg CT (hrs/lot)', eqColIdle:'Idle Time (hrs)', eqColOEE:'OEE %', eqColBar:'Timeline',
     eqBatchOpp:'⚡ Batching Opportunity',
     eqBatchDesc:'Same PN runs non-consecutively — resequencing to batch together eliminates avoidable setups.',
     eqScheduled:'Scheduled', eqIdle:'Idle',
@@ -752,6 +783,21 @@ const TRANS = {
     capClickHint:'Click any coloured cell for details',
     capGapCells:'Gap Cells', capTotalIdle:'Total Idle', capActionable:'Actionable', capAreaGain:'Area Gain',
     capProcGroup:'Process Group',
+    colStation:'Station', colStepStart:'Step Start', colStepEnd:'Step End',
+    colEstCompletion:'Est. Completion Date', colBacklog:'Backlog',
+    colLotId:'Lot ID', colPanels:'Panels', colTotalPanels:'Total Panels',
+    colQty:'Total Panels', colDeadline:'Deadline',
+    colStart:'Start', colEnd:'End', colTotal:'Total',
+    colFabTime:'In Production (hrs)', colIdleTime:'Idle Time (hrs)', colEstOEE:'Est. OEE %',
+    colOrderTypes:'Order Type', colAction:'Action',
+    lblNoMatches:'No matches', lblGranularity:'Granularity',
+    btnDaily:'Daily', btnWeekly:'Weekly', btnOnTrack:'On Track', btnOverdue:'Overdue',
+    lotDrawerTitle:'Lot Plan', lotDrawerPN:'PN', lotDrawerSteps:'steps',
+    lotDrawerProcess:'Process Step', lotDrawerStation:'Station',
+    lotDrawerStart:'Start', lotDrawerEnd:'End', lotDrawerDuration:'Duration',
+    lotDrawerStatus:'Status',
+    lotStatusDone:'Done', lotStatusActive:'In Progress', lotStatusSched:'Scheduled',
+    lotDrawerEXF:'EXF (CDD - 2 days)', lotDrawerEstComp:'Est. Completion Date',
   },
   zh: {
     appTitle:'生产计划看板', uploadNew:'上传新文件',
@@ -763,7 +809,7 @@ const TRANS = {
     feat3:'产出面积 — 各工序每日计划产出面积',
     search:'搜索', orderType:'订单类型', status:'状态',
     all:'全部', overdue:'逾期', onTrack:'正常',
-    colPN:'料号', colOrderType:'订单类型', colExFactory:'出厂日期',
+    colPN:'料号', colPartNumber:'料号', colOrderType:'订单类型', colExFactory:'EXF (CDD - 2天)',
     colLots:'批次数', colSteps:'工序数', colEstEnd:'预计完成日期', colAreaOv:'面积（m²）',
     colOverdue:'逾期任务', colStatus:'状态',
     statTotal:'订单总数', statOverdue:'逾期订单',
@@ -774,12 +820,12 @@ const TRANS = {
     from:'开始日期', to:'结束日期', quick:'快选', process:'工序',
     today:'今天', thisWeek:'本周', next2w:'未来两周',
     thisMonth:'本月',
-    colProcess:'工序', colTasks:'任务数', colArea:'总面积（m²）',
+    colProcess:'工序', colTasks:'批次数', colArea:'总面积（m²）',
     colOverdueTasks:'逾期任务', colOverduePct:'逾期率', colOrderTypes:'订单类型',
     granularity:'粒度', daily:'日', weekly:'周',
     routeLabel:'生产路线', lotsLabel:'批次',
-    lotId:'批次编号', currentStep:'当前工序', estEnd:'预计完成时间', lotStatus:'状态',
-    badgeOverdue:'⚠ 逾期', badgeOk:'✓ 正常', badgeLate:'逾期', badgeGood:'正常',
+    lotId:'批次编号', currentStep:'当前工序', estEnd:'预计完成日期', lotStatus:'状态',
+    badgeOverdue:'逾期', badgeOk:'✓ 正常', badgeLate:'逾期', badgeGood:'正常',
     allUrgent:'全部紧急', urgent:'紧急', urgentOrders:'🚨 紧急订单',
     uniqueParts:'个唯一料号', ofTotal:'占总数',
     tab4:'🎯 目标与计划对比',
@@ -805,7 +851,7 @@ const TRANS = {
     eqProcesses:'工序', eqProcOEE:'工序OEE',
     eqColStation:'站点/设备', eqColTasks:'批次数',
     eqColPNs:'唯一料号', eqColCO:'换型次数',
-    eqColFab:'生产时间(h)', eqColAvgCt:'平均节拍(h/批)', eqColIdle:'空闲时间(h)', eqColOEE:'OEE %', eqColBar:'时间轴',
+    eqColFab:'在产时间(h)', eqColAvgCt:'平均节拍(h/批)', eqColIdle:'空闲时间(h)', eqColOEE:'OEE %', eqColBar:'时间轴',
     eqBatchOpp:'⚡ 合批机会',
     eqBatchDesc:'同一料号非连续排产 — 重新排序可消除不必要的换型设置。',
     eqScheduled:'生产中', eqIdle:'空闲',
@@ -821,6 +867,21 @@ const TRANS = {
     capClickHint:'点击彩色单元格查看详情',
     capGapCells:'缺口格', capTotalIdle:'总空闲时间', capActionable:'可操作', capAreaGain:'潜在面积增益',
     capProcGroup:'工序组',
+    colStation:'站点', colStepStart:'工序开始', colStepEnd:'工序结束',
+    colEstCompletion:'预计完成日期', colBacklog:'积压',
+    colLotId:'批次编号', colPanels:'面板数', colTotalPanels:'总面板数',
+    colQty:'总面板数', colDeadline:'截止日期',
+    colStart:'开始', colEnd:'结束', colTotal:'合计',
+    colFabTime:'在产时间(h)', colIdleTime:'空闲时间(h)', colEstOEE:'估算OEE%',
+    colOrderTypes:'订单类型', colAction:'操作',
+    lblNoMatches:'无匹配结果', lblGranularity:'粒度',
+    btnDaily:'每日', btnWeekly:'每周', btnOnTrack:'正常', btnOverdue:'逾期',
+    lotDrawerTitle:'批次计划', lotDrawerPN:'料号', lotDrawerSteps:'工序',
+    lotDrawerProcess:'工序步骤', lotDrawerStation:'站点',
+    lotDrawerStart:'开始', lotDrawerEnd:'结束', lotDrawerDuration:'时长',
+    lotDrawerStatus:'状态',
+    lotStatusDone:'已完成', lotStatusActive:'进行中', lotStatusSched:'计划中',
+    lotDrawerEXF:'EXF (CDD - 2天)', lotDrawerEstComp:'预计完成日期',
   }
 };
 
@@ -924,9 +985,11 @@ async function loadXlsx(file) {
       const start = pDate(r['Start']), end = pDate(r['End']),
             dead  = pDate(r['Latest end']), exFac = pDate(r['ExFactoryDate']);
       const area  = parseFloat(r['lot area'])||0;
+      const qty   = parseInt(r['quantity panel'])||0;
       const lot   = lotId(r['Task']);
-      return { ...r, _start:start, _end:end, _dead:dead, _exFac:exFac, _area:area,
-               _lot:lot, _late:!!(end&&dead&&end>dead) };
+      const dur   = (start && end) ? (end - start) / 3600000 : 0; // hours from End-Start
+      return { ...r, _start:start, _end:end, _dead:dead, _exFac:exFac, _area:area, _qty:qty, _dur:dur,
+               _lot:lot, _late:false }; // _late recalculated at lot level after all rows parsed
     });
 
     showLoad('Building orders…'); await tick();
@@ -993,8 +1056,18 @@ function buildOrders() {
     const maxEnd    = ends.length ? new Date(Math.max(...ends)) : null;
     const lots      = new Set(o.tasks.map(t=>t._lot).filter(Boolean));
     const steps     = new Set(o.tasks.map(t=>t['process_name']).filter(Boolean));
-    const overdueCount = o.tasks.filter(t=>t._late).length;
+
+    // _late = estimated lot completion (maxEnd) is after ExFactoryDate
+    const exFac     = o.tasks[0]?._exFac || null;
+    const isLotLate = !!(maxEnd && exFac && maxEnd > exFac);
+    // Stamp _late back onto each task so filters/badges work downstream
+    for (const t of o.tasks) t._late = isLotLate;
+
+    const overdueCount = isLotLate ? lots.size : 0;
     const totalArea = lotAreaSum(o.tasks);
+    const lotQtyMap = new Map();
+    for (const t of o.tasks) { if (t._lot && !lotQtyMap.has(t._lot)) lotQtyMap.set(t._lot, t._qty||0); }
+    const totalQty = [...lotQtyMap.values()].reduce((s,v)=>s+v,0);
 
     // Urgency: a lot is urgent if any of its tasks has State = 'Urgent'
     const lotUrgent = new Map();
@@ -1008,7 +1081,7 @@ function buildOrders() {
                   : urgentLots > 0 ? 'some' : 'none';
 
     return { ...o, maxEnd, lotCount:lots.size, stepCount:steps.size,
-             overdueCount, isOverdue: overdueCount>0, urgency, urgentLots, totalArea };
+             overdueCount, isOverdue: overdueCount>0, urgency, urgentLots, totalArea, totalQty };
   });
 }
 
@@ -1148,6 +1221,7 @@ function renderOverview() {
         <td><span class="badge b-neutral">${esc(o.orderType)}</span></td>
         <td class="num"><b>${fmtN(o.lotCount)}</b></td>
         <td class="num">${fmtN(o.stepCount)}</td>
+        <td class="num">${o.totalQty>0 ? fmtN(o.totalQty) : '–'}</td>
         <td class="num">${o.totalArea>0 ? fmtN(o.totalArea,2) : '–'}</td>
         <td class="num" ${late?'style="color:var(--red);font-weight:700"':''}>${fmtN(o.overdueCount||0)}</td>
         <td class="num">${fmtDt(o.maxEnd)}</td>
@@ -1197,8 +1271,9 @@ function buildLotView(o) {
     const ends    = tasks.map(t2=>t2._end).filter(Boolean);
     const lastEnd = ends.length ? new Date(Math.max(...ends)) : null;
     const isLate  = tasks.some(t2=>t2._late);
+    const qty     = tasks[0]?._qty||0;
     if (stepCounts.has(curStep)) stepCounts.set(curStep, stepCounts.get(curStep)+1);
-    return {lid, curStep, lastEnd, isLate};
+    return {lid, curStep, lastEnd, isLate, qty};
   }).sort((a,b)=>(a.lastEnd||0)-(b.lastEnd||0));
 
   // Route bar — badge per step showing how many lots are currently there
@@ -1215,8 +1290,9 @@ function buildLotView(o) {
 
   const lotsTableRows = lotRows.map(lr=>`
     <tr>
-      <td style="font-family:monospace;font-size:.78rem;white-space:nowrap">${esc(lr.lid)}</td>
+      <td><span class="lot-link" onclick="openLotDrawer('${esc(lr.lid)}')">${esc(lr.lid)}</span></td>
       <td><span class="badge b-blue">${esc(lr.curStep)}</span></td>
+      <td class="num">${lr.qty>0?fmtN(lr.qty):'–'}</td>
       <td class="num">${fmtDt(lr.lastEnd)}</td>
       <td>${lr.isLate?`<span class="badge b-overdue">${t('badgeLate')}</span>`:`<span class="badge b-ok">${t('badgeGood')}</span>`}</td>
     </tr>`).join('');
@@ -1227,6 +1303,7 @@ function buildLotView(o) {
       <thead><tr>
         <th>${t('lotId')}</th>
         <th>${t('currentStep')}</th>
+        <th class="num">${t('colPanels')}</th>
         <th>${t('estEnd')}</th>
         <th>${t('lotStatus')}</th>
       </tr></thead>
@@ -1272,6 +1349,14 @@ function renderBacklog() {
 
   // Include rows that overlap the window (not just those starting in it)
   const rows=G.rows.filter(r=>r._start&&r._end&&r._start.getTime()<winE&&r._end.getTime()>winS);
+
+  // Build lot-level estimated completion: lotId → max _end across all steps
+  const lotEstEnd = new Map();
+  for (const r of G.rows) {
+    if (!r._lot || !r._end) continue;
+    const cur = lotEstEnd.get(r._lot);
+    if (!cur || r._end > cur) lotEstEnd.set(r._lot, r._end);
+  }
 
   // Group by process
   const map=new Map();
@@ -1346,27 +1431,41 @@ function renderBacklog() {
         <td class="wrap">${p.types.map(ty=>`<span class="badge b-neutral" style="margin:1px">${esc(ty)}</span>`).join('')}</td>
       </tr>
       <tr class="xrow" id="${id}">
-        <td class="xcell" colspan="10">
+        <td class="xcell" colspan="12">
           <div class="xinner">
             <div class="xinner-title">${esc(p.name)} — ${p.count} tasks</div>
             <div class="tbl-scr"><table>
               <thead><tr>
-                <th>${t('colPN')}</th><th>${t('colOrderType')}</th><th>Station</th>
-                <th>Start</th><th>End</th><th>Deadline</th>
-                <th class="num">${t('colArea')}</th><th>${t('colStatus')}</th><th>Backlog</th>
+                <th>${t('colPN')}</th>
+                <th>${t('colLotId')}</th>
+                <th>${t('colOrderType')}</th>
+                <th class="num">${t('colPanels')}</th>
+                <th class="num">${t('colArea')}</th>
+                <th>${t('colStation')}</th>
+                <th class="num">${t('colStepStart')}</th>
+                <th class="num">${t('colStepEnd')}</th>
+                <th class="num">${t('colEstCompletion')}</th>
+                <th class="num">${t('colExFactory')}</th>
+                <th>${t('colStatus')}</th>
+                <th>${t('colBacklog')}</th>
               </tr></thead>
               <tbody>
                 ${p.tasks.slice(0,300).map(r=>`
                   <tr>
                     <td style="font-weight:600">${esc(r['part number']||'')}</td>
+                    <td><span class="lot-link" onclick="openLotDrawer('${esc(r._lot||'')}')">${esc(r._lot||'–')}</span></td>
                     <td><span class="badge b-neutral">${esc(r['order_type']||'')}</span></td>
-                    <td>${esc(r['Station']||'')}</td>
-                    <td class="num">${fmtDt(r._start)}</td><td class="num">${fmtDt(r._end)}</td><td class="num">${fmtDt(r._dead)}</td>
+                    <td class="num">${r._qty>0?fmtN(r._qty):'–'}</td>
                     <td class="num">${fmtN(r._area,3)}</td>
+                    <td>${esc(r['Station']||'')}</td>
+                    <td class="num">${fmtDt(r._start)}</td>
+                    <td class="num">${fmtDt(r._end)}</td>
+                    <td class="num" style="font-weight:600">${fmtDt(lotEstEnd.get(r._lot)||null)}</td>
+                    <td class="num">${fmtS(r._exFac)}</td>
                     <td>${r._late?`<span class="badge b-overdue">${t('badgeLate')}</span>`:`<span class="badge b-ok">${t('badgeGood')}</span>`}</td>
                     <td style="font-size:.72rem;color:var(--muted)">${esc(r['in backlog']||'')}</td>
                   </tr>`).join('')}
-                ${p.tasks.length>300?`<tr><td colspan="10" class="note">… and ${p.tasks.length-300} more</td></tr>`:''}
+                ${p.tasks.length>300?`<tr><td colspan="12" class="note">… and ${p.tasks.length-300} more</td></tr>`:''}
               </tbody>
             </table></div>
           </div>
@@ -1910,7 +2009,7 @@ function renderScenarioResults(results) {
 }
 
 function scExport() {
-  const rows=[['Part Number','Change','Deadline','Baseline End','Sim End','Shift (days)','Buffer (days)','Status']];
+  const rows=[['PN','Change','EXF (CDD - 2 days)','Baseline End','Sim End','Shift (days)','Buffer (days)','Status']];
   document.querySelectorAll('#sc-results-body tr').forEach(tr=>{
     const cells=[...tr.querySelectorAll('td')].map(td=>td.textContent.trim());
     if(cells.length) rows.push([cells[1],cells[2],cells[3],cells[4],cells[5],cells[6],cells[7],cells[8]]);
@@ -2245,7 +2344,7 @@ function buildStationDetail(s, winS, winE, slotMs, slotLabel, numDays) {
       <div style="margin-bottom:8px">${pnList}</div>
       <div style="font-size:.72rem;color:var(--muted);margin-bottom:10px">${t('eqBatchDesc')}</div>
       <div class="tbl-scr"><table style="font-size:.78rem">
-        <thead><tr><th>Start</th><th>End</th><th>Part Number</th><th class="num">Area</th><th>Type</th></tr></thead>
+        <thead><tr><th>Start</th><th>End</th><th>${t("colPN")}</th><th class="num">Area</th><th>Type</th></tr></thead>
         <tbody>${schedRows}</tbody>
       </table></div>
     </div>`;
@@ -2508,7 +2607,7 @@ function capOpenModal(grpKey,dk) {
       </div>
       <div style="overflow-x:auto"><table style="font-size:.78rem;width:100%">
         <thead><tr>
-          <th>Part Number</th><th class="num">Lots</th><th class="num">Area (sqft)</th>
+          <th>${t("colPN")}</th><th class="num">Lots</th><th class="num">Area (sqft)</th>
           <th class="num">CDD</th><th class="num">Currently Starts</th>
           <th class="num">Pull Forward</th><th class="num">Current Buffer</th>
           <th class="num">New Buffer</th><th class="num">Buffer Gain</th>
@@ -2573,6 +2672,111 @@ function capShowCopyConfirm() {
 function capCloseModal(){
   const ov=document.getElementById('cap-modal-overlay');
   if(ov) ov.style.display='none';
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOT PLAN DRAWER
+// ═══════════════════════════════════════════════════════
+function openLotDrawer(lotId) {
+  const tasks = G.rows.filter(r => r._lot === lotId && r._start && r._end)
+    .sort((a,b) => a._start - b._start);
+  if (!tasks.length) return;
+
+  const now    = new Date();
+  const exFac  = tasks[0]._exFac;
+  const maxEnd = new Date(Math.max(...tasks.map(t=>t._end)));
+  const pn     = tasks[0]['part number'] || '';
+  const isLate = exFac && maxEnd > exFac;
+
+  // Title
+  document.getElementById('lot-drawer-title').innerHTML =
+    '<span style="font-family:monospace">' + esc(lotId) + '</span>' +
+    (isLate ? ' <span style="background:#ffebee;color:var(--red);font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:10px;vertical-align:middle">Late</span>' : '');
+  document.getElementById('lot-drawer-sub').innerHTML =
+    t('lotDrawerPN') + ': <strong>' + esc(pn) + '</strong>' +
+    ' &nbsp;·&nbsp; ' + tasks.length + ' ' + t('lotDrawerSteps') +
+    ' &nbsp;·&nbsp; ' + t('lotDrawerEstComp') + ': <strong>' + fmtDt(maxEnd) + '</strong>' +
+    (exFac ? ' &nbsp;·&nbsp; ' + t('lotDrawerEXF') + ': <strong style="color:' + (isLate?'var(--red)':'var(--green)') + '">' + fmtS(exFac) + '</strong>' : '');
+
+  // Mini timeline bar
+  const tMin = tasks[0]._start.getTime();
+  const tMax = maxEnd.getTime();
+  const tSpan = tMax - tMin || 1;
+  const bars = tasks.map(task => {
+    const left  = ((task._start.getTime() - tMin) / tSpan * 100).toFixed(1);
+    const width = Math.max(0.5, ((task._end.getTime() - task._start.getTime()) / tSpan * 100)).toFixed(1);
+    const status = task._end < now ? 'done' : task._start <= now ? 'active' : 'sched';
+    const col = status==='done'?'#22c55e':status==='active'?'#3b82f6':'#94a3b8';
+    return '<div title="'+esc(task['process_name']||'')+'" style="position:absolute;left:'+left+'%;width:'+width+'%;height:100%;background:'+col+';border-radius:2px;min-width:2px"></div>';
+  }).join('');
+  document.getElementById('lot-drawer-timeline').innerHTML =
+    '<div style="font-size:.7rem;color:var(--muted);margin-bottom:4px;display:flex;justify-content:space-between">' +
+      '<span>' + fmtDt(tasks[0]._start) + '</span>' +
+      '<span>' + fmtDt(maxEnd) + '</span>' +
+    '</div>' +
+    '<div style="position:relative;height:12px;background:#e2e8f0;border-radius:4px;overflow:hidden">' + bars + '</div>' +
+    '<div style="display:flex;gap:14px;margin-top:6px;font-size:.7rem;color:var(--muted)">' +
+      '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#22c55e;margin-right:3px"></span>' + t('lotStatusDone') + '</span>' +
+      '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#3b82f6;margin-right:3px"></span>' + t('lotStatusActive') + '</span>' +
+      '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#94a3b8;margin-right:3px"></span>' + t('lotStatusSched') + '</span>' +
+    '</div>';
+
+  // Table header
+  document.getElementById('lot-drawer-head').innerHTML =
+    '<tr style="background:#f8fafc">' +
+      '<th style="padding:8px 12px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap">#</th>' +
+      '<th style="padding:8px 12px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border)">' + t('lotDrawerProcess') + '</th>' +
+      '<th style="padding:8px 12px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border)">' + t('lotDrawerStation') + '</th>' +
+      '<th style="padding:8px 12px;text-align:right;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap">' + t('lotDrawerStart') + '</th>' +
+      '<th style="padding:8px 12px;text-align:right;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap">' + t('lotDrawerEnd') + '</th>' +
+      '<th style="padding:8px 12px;text-align:right;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap">' + t('lotDrawerDuration') + '</th>' +
+      '<th style="padding:8px 12px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border)">' + t('lotDrawerStatus') + '</th>' +
+    '</tr>';
+
+  // Table rows
+  const tbody = document.getElementById('lot-drawer-body');
+  tbody.innerHTML = '';
+  tasks.forEach((task, i) => {
+    const status   = task._end < now ? 'done' : task._start <= now ? 'active' : 'sched';
+    const statusBadge = status==='done'
+      ? '<span style="background:#dcfce7;color:#166534;border-radius:4px;padding:2px 8px;font-size:.7rem;font-weight:700">'+t('lotStatusDone')+'</span>'
+      : status==='active'
+      ? '<span style="background:#dbeafe;color:#1e40af;border-radius:4px;padding:2px 8px;font-size:.7rem;font-weight:700">'+t('lotStatusActive')+'</span>'
+      : '<span style="background:#f1f5f9;color:#64748b;border-radius:4px;padding:2px 8px;font-size:.7rem;font-weight:700">'+t('lotStatusSched')+'</span>';
+    const durH  = task._dur || 0;
+    const durStr = durH < 0.017 ? '<1m' : durH < 1 ? Math.round(durH*60)+'m' : fmtN(durH,1)+'h';
+    const rowBg = status==='done'?'#f0fdf4':status==='active'?'#eff6ff':'#fff';
+    const leftBorder = status==='active'?'border-left:3px solid #3b82f6':'';
+    const td = 'style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:.8rem"';
+    const tdr = 'style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:.8rem;text-align:right;color:var(--muted);font-family:monospace"';
+    tbody.insertAdjacentHTML('beforeend',
+      '<tr style="background:'+rowBg+';'+leftBorder+'">' +
+        '<td '+td+' style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:.75rem;color:var(--muted);text-align:center">'+(i+1)+'</td>' +
+        '<td '+td+' style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:.8rem;font-weight:700">'+esc(task['process_name']||'')+'</td>' +
+        '<td '+td+'>'+esc(task['Station']||'')+'</td>' +
+        '<td '+tdr+'>'+fmtDt(task._start)+'</td>' +
+        '<td '+tdr+'>'+fmtDt(task._end)+'</td>' +
+        '<td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:.8rem;text-align:right;font-weight:600;color:'+(durH>4?'var(--red)':durH>1?'var(--amber)':'var(--text)')+'">'+durStr+'</td>' +
+        '<td '+td+'>'+statusBadge+'</td>' +
+      '</tr>'
+    );
+  });
+
+  // Show drawer
+  const drawer  = document.getElementById('lot-drawer');
+  const overlay = document.getElementById('lot-drawer-overlay');
+  drawer.style.display  = 'flex';
+  overlay.style.display = 'block';
+  // Trigger slide-in
+  requestAnimationFrame(()=>{ drawer.style.transform='translateX(0)'; });
+}
+
+function closeLotDrawer() {
+  const drawer  = document.getElementById('lot-drawer');
+  const overlay = document.getElementById('lot-drawer-overlay');
+  drawer.style.transform = 'translateX(100%)';
+  overlay.style.display  = 'none';
+  setTimeout(()=>{ drawer.style.display='none'; }, 260);
 }
 
 // ═══════════════════════════════════════════════════════

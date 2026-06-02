@@ -1272,8 +1272,9 @@ function buildLotView(o) {
     const lastEnd = ends.length ? new Date(Math.max(...ends)) : null;
     const isLate  = tasks.some(t2=>t2._late);
     const qty     = tasks[0]?._qty||0;
+    const exFac   = tasks[0]?._exFac||null;
     if (stepCounts.has(curStep)) stepCounts.set(curStep, stepCounts.get(curStep)+1);
-    return {lid, curStep, lastEnd, isLate, qty};
+    return {lid, curStep, lastEnd, isLate, qty, exFac};
   }).sort((a,b)=>(a.lastEnd||0)-(b.lastEnd||0));
 
   // Route bar — badge per step showing how many lots are currently there
@@ -1288,14 +1289,17 @@ function buildLotView(o) {
     <div class="lot-route">${routeParts}</div>
   `;
 
-  const lotsTableRows = lotRows.map(lr=>`
-    <tr>
+  const lotsTableRows = lotRows.map(lr=>{
+    const exfColor = lr.exFac ? (lr.isLate ? 'color:var(--red);font-weight:700' : 'color:var(--green);font-weight:600') : '';
+    return `<tr>
       <td><span class="lot-link" onclick="openLotDrawer('${esc(lr.lid)}')">${esc(lr.lid)}</span></td>
       <td><span class="badge b-blue">${esc(lr.curStep)}</span></td>
       <td class="num">${lr.qty>0?fmtN(lr.qty):'–'}</td>
       <td class="num">${fmtDt(lr.lastEnd)}</td>
+      <td class="num" style="${exfColor}">${lr.exFac?fmtS(lr.exFac):'–'}</td>
       <td>${lr.isLate?`<span class="badge b-overdue">${t('badgeLate')}</span>`:`<span class="badge b-ok">${t('badgeGood')}</span>`}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   const lotsHtml = `
     <div class="xinner-title" style="margin-top:6px">${t('lotsLabel')} (${lotRows.length})</div>
@@ -1304,7 +1308,8 @@ function buildLotView(o) {
         <th>${t('lotId')}</th>
         <th>${t('currentStep')}</th>
         <th class="num">${t('colPanels')}</th>
-        <th>${t('estEnd')}</th>
+        <th class="num">${t('estEnd')}</th>
+        <th class="num">${t('colExFactory')}</th>
         <th>${t('lotStatus')}</th>
       </tr></thead>
       <tbody>${lotsTableRows}</tbody>

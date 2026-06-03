@@ -190,6 +190,31 @@ tbody td.wrap{white-space:normal;max-width:280px}
     <div class="hdr-right">
       <span class="hdr-meta" id="hdrMeta"></span>
       <button class="btn-lang" id="langBtn" onclick="toggleLang()">中文</button>
+      <!-- Settings dropdown -->
+      <div style="position:relative;display:inline-block">
+        <button class="btn-ghost" onclick="toggleSettings()" id="settingsBtn">⚙️ Settings</button>
+        <div id="settings-panel" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.12);padding:16px 18px;min-width:320px;z-index:200">
+          <div style="font-size:.78rem;font-weight:700;color:var(--hdr);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">⚙️ Settings</div>
+          <!-- Area calculation method -->
+          <div style="margin-bottom:4px">
+            <div style="font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:6px" id="areaSettingLabel">Area Calculation</div>
+            <label style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;border:1.5px solid var(--border);margin-bottom:6px" id="areaOpt1">
+              <input type="radio" name="areaMode" value="pailot" onchange="setAreaMode('pailot')" style="margin-top:2px;flex-shrink:0">
+              <div>
+                <div style="font-size:.8rem;font-weight:600;color:var(--text)" id="areaModeLabel1">Pailot lot area (m²→sqft)</div>
+                <div style="font-size:.72rem;color:var(--muted)" id="areaModeDesc1">Use the lot area column from Pailot, converted to sqft</div>
+              </div>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;border:1.5px solid var(--border)" id="areaOpt2">
+              <input type="radio" name="areaMode" value="calc" checked onchange="setAreaMode('calc')" style="margin-top:2px;flex-shrink:0">
+              <div>
+                <div style="font-size:.8rem;font-weight:600;color:var(--text)" id="areaModeLabel2">Panel Size × Qty (mm²→sqft)</div>
+                <div style="font-size:.72rem;color:var(--muted)" id="areaModeDesc2">Calculate as (Panel Size mm² ÷ 92,903) × quantity panel</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
       <button class="btn-ghost" onclick="document.getElementById('fileIn').click()" data-i="uploadNew">Upload New File</button>
     </div>
   </header>
@@ -233,7 +258,7 @@ tbody td.wrap{white-space:normal;max-width:280px}
                 <th class="sortable num" data-k="lotCount" data-i="colLots">Lots</th>
                 <th class="sortable num" data-k="stepCount" data-i="colSteps">Steps</th>
                 <th class="sortable num" data-k="totalQty" data-i="colTotalPanels">Total Panels</th>
-                <th class="sortable num" data-k="totalArea" data-i="colAreaOv">Area (m²)</th>
+                <th class="sortable num" data-k="totalArea" data-i="colAreaOv">Area (sqft)</th>
                 <th class="sortable num" data-k="overdueCount" data-i="colOverdue">Overdue Tasks</th>
                 <th class="sortable num" data-k="maxEnd" data-i="colEstEnd">Est. End Date</th>
                 <th class="sortable num" data-k="exFactory" data-i="colExFactory">Ex-Factory Date</th>
@@ -278,7 +303,7 @@ tbody td.wrap{white-space:normal;max-width:280px}
                 <th style="width:32px"></th>
                 <th data-i="colProcess">Process Step</th>
                 <th class="num" data-i="colTasks">Tasks</th>
-                <th class="num" data-i="colArea">Total Area (m²)</th>
+                <th class="num" data-i="colArea">Total Area (sqft)</th>
                 <th class="num" data-i="colOverdueTasks">Overdue Tasks</th>
                 <th class="num" data-i="colOverduePct">Overdue %</th>
                 <th class="num" data-i="colFabTime" data-i="eqColFab">In Production (hrs)</th>
@@ -294,31 +319,6 @@ tbody td.wrap{white-space:normal;max-width:280px}
     </div>
   </div>
 
-  <!-- PANE 3: PRODUCTION AREA -->
-  <!-- PANE: PRODUCTION AREA (archived) -->
-  <div style="display:none" id="pane-production">
-    <div class="page">
-      <div class="toolbar">
-        <label data-i="from">From</label>
-        <input type="date" class="inp" id="pr-from" oninput="renderProduction()">
-        <label data-i="to">To</label>
-        <input type="date" class="inp" id="pr-to" oninput="renderProduction()">
-        <div class="vsep"></div>
-        <label data-i="granularity">Granularity</label>
-        <div class="chip-group">
-          <button class="chip on" id="gran-day" onclick="setGran('day',this)" data-i="daily">Daily</button>
-          <button class="chip" id="gran-week" onclick="setGran('week',this)" data-i="weekly">Weekly</button>
-        </div>
-        <div class="vsep"></div>
-        <label data-i="process">Process</label>
-        <input class="inp" id="pr-q" placeholder="Filter…" oninput="renderProduction()" style="min-width:130px">
-        <span class="row-count ml-a" id="pr-cnt">—</span>
-      </div>
-      <div class="matrix-outer">
-        <table class="mtbl" id="pr-matrix"></table>
-      </div>
-    </div>
-  </div>
   <!-- PANE 4: TARGET VS SCHEDULED -->
   <div class="pane hidden" id="pane-target">
     <div class="page">
@@ -337,9 +337,9 @@ tbody td.wrap{white-space:normal;max-width:280px}
             <thead>
               <tr>
                 <th data-i="tgProcess">Process Step</th>
-                <th class="num" data-i="tgDailyTarget">Daily Target (m²)</th>
-                <th class="num" data-i="tgScheduled">Scheduled Area (m²)</th>
-                <th class="num" data-i="tgDiff">Difference (m²)</th>
+                <th class="num" data-i="tgDailyTarget">Daily Target (sqft)</th>
+                <th class="num" data-i="tgScheduled">Scheduled Area (sqft)</th>
+                <th class="num" data-i="tgDiff">Difference (sqft)</th>
                 <th class="num" data-i="tgVsPct">vs Target %</th>
                 <th data-i="tgStatus">Status</th>
               </tr>
@@ -524,67 +524,8 @@ tbody td.wrap{white-space:normal;max-width:280px}
     </div>
   </div>
 
-  <!-- PANE: CAPACITY GAP -->
-  <!-- PANE: CAPACITY GAP (archived) -->
-  <div style="display:none" id="pane-capacity">
-    <div class="page">
-      <div class="toolbar" style="flex-wrap:wrap;gap:10px">
-        <label data-i="capFrom">From</label><input type="date" class="inp" id="cap-from" oninput="renderCapacity()">
-        <label data-i="capTo">To</label><input type="date" class="inp" id="cap-to" oninput="renderCapacity()">
-        <div class="vsep"></div>
-        <label data-i="capQuick">Quick</label>
-        <div class="chip-group">
-          <button class="chip" onclick="capQuick('today')" data-i="capToday">Today</button>
-          <button class="chip" onclick="capQuick('3d')" data-i="cap3d">3 Days</button>
-          <button class="chip" onclick="capQuick('week')" data-i="capWeek">Week</button>
-          <button class="chip" onclick="capQuick('2w')" data-i="cap2w">2 Weeks</button>
-        </div>
-        <div class="vsep"></div>
-        <label data-i="capThreshold">Gap threshold</label>
-        <select class="inp" id="cap-thresh" onchange="renderCapacity()" style="min-width:100px">
-          <option value="50">Below 50%</option>
-          <option value="60" selected>Below 60%</option>
-          <option value="70">Below 70%</option>
-          <option value="80">Below 80%</option>
-        </select>
-        <span class="row-count ml-a" id="cap-cnt">—</span>
-      </div>
-      <div class="stat-row" id="cap-stats"></div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;font-size:.75rem;color:var(--muted);align-items:center">
-        <span style="font-weight:700;color:var(--text)">OEE:</span>
-        <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:#2e7d32;flex-shrink:0"></span><span data-i="capLegendOnTarget">≥80% on target</span></span>
-        <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:#f9a825;flex-shrink:0"></span><span data-i="capLegendMod">50–79% moderate</span></span>
-        <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:#c62828;flex-shrink:0"></span><span data-i="capLegendGap">Gap — no lots ready</span></span>
-        <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:11px;height:11px;border-radius:2px;background:#e3f2fd;border:1px solid #90caf9;flex-shrink:0"></span><span data-i="capLegendAction">Gap + lots ready to pull</span></span>
-        <span style="margin-left:auto;font-size:.72rem" data-i="capClickHint">Click any coloured cell for details</span>
-      </div>
-      <div class="tbl-wrap">
-        <div class="tbl-scr">
-          <table id="cap-table" style="border-collapse:separate;border-spacing:2px">
-            <thead id="cap-head"></thead>
-            <tbody id="cap-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
 
-</div>
-
-<!-- Capacity Gap Modal -->
-<div id="cap-modal-overlay">
-  <div id="cap-modal" style="background:#fff;border-radius:10px;width:min(860px,95vw);max-height:85vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)">
-    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:sticky;top:0;background:#fff;z-index:1">
-      <div>
-        <div id="cap-modal-title" style="font-weight:700;font-size:.92rem"></div>
-        <div id="cap-modal-sub" style="font-size:.76rem;color:var(--muted)"></div>
-      </div>
-      <button onclick="capCloseModal()" style="margin-left:auto;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);line-height:1">&times;</button>
-    </div>
-    <div id="cap-modal-body" style="padding:16px 20px"></div>
-  </div>
-</div>
 
 <!-- Lot Plan Drawer -->
 <div id="lot-drawer-overlay" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.35)" onclick="closeLotDrawer()"></div>
@@ -634,9 +575,6 @@ tbody td.wrap{white-space:normal;max-width:280px}
 .lot-step-done td{background:#f0fdf4}
 .lot-step-active td{background:#eff6ff}
 .lot-step-sched td{background:#fff}
-.cap-cell{text-align:center;padding:6px 4px;font-size:.72rem;font-weight:700;transition:opacity .1s}
-.cap-cell:hover{opacity:.8}
-#cap-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center}
 </style>
 
 <script>
@@ -712,6 +650,59 @@ function pcbRank(name) {
 }
 
 // ═══════════════════════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════════════════════
+const SETTINGS = { areaMode: 'calc' }; // 'pailot' | 'calc'
+
+function toggleSettings() {
+  const panel = document.getElementById('settings-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+// Close settings when clicking outside
+document.addEventListener('click', e => {
+  const btn = document.getElementById('settingsBtn');
+  const panel = document.getElementById('settings-panel');
+  if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+    panel.style.display = 'none';
+  }
+});
+
+function setAreaMode(mode) {
+  SETTINGS.areaMode = mode;
+  // Highlight active option
+  document.getElementById('areaOpt1').style.borderColor = mode==='pailot' ? 'var(--blue)' : 'var(--border)';
+  document.getElementById('areaOpt2').style.borderColor = mode==='calc'   ? 'var(--blue)' : 'var(--border)';
+
+  // If data is loaded — recalculate _area on every row and re-render
+  if (!G.rows || !G.rows.length) return;
+  for (const r of G.rows) {
+    r._area = calcArea(r['lot area'], r['Panel Size'], r['quantity panel']);
+  }
+  // Rebuild order totals (totalArea, totalQty affected)
+  buildOrders();
+  // Re-render active tab
+  const active = document.querySelector('.pane.active');
+  if (!active) return;
+  if (active.id === 'pane-overview')    renderOverview();
+  if (active.id === 'pane-backlog')     renderBacklog();
+  if (active.id === 'pane-target')      renderTarget();
+  if (active.id === 'pane-equipment')   renderEquipment();
+  // Close the settings panel
+  document.getElementById('settings-panel').style.display = 'none';
+}
+
+function calcArea(lotAreaM2, panelSizeMm2, qty) {
+  if (SETTINGS.areaMode === 'calc') {
+    // Panel Size mm² ÷ 92,903 (mm² per sqft) × qty
+    const ps = parseFloat(panelSizeMm2) || 0;
+    const q  = parseInt(qty) || 0;
+    return ps > 0 && q > 0 ? (ps / 92903) * q : (parseFloat(lotAreaM2)||0) * 10.764;
+  }
+  // Default: Pailot lot area m² → sqft
+  return (parseFloat(lotAreaM2)||0) * 10.764;
+}
+
+// ═══════════════════════════════════════════════════════
 //  TRANSLATIONS
 // ═══════════════════════════════════════════════════════
 const TRANS = {
@@ -722,21 +713,20 @@ const TRANS = {
     clickUpload:'Click to upload', orDrop:'or drag & drop',
     feat1:'Overview — every order with lot-level process flow drill-down',
     feat2:'Process Backlog — workload per step, filtered by date range',
-    feat3:'Production Area — expected area output by process & day',
     search:'Search', orderType:'Order Type', status:'Status',
     all:'All', overdue:'Overdue', onTrack:'On Track',
     colPN:'PN', colPartNumber:'PN', colOrderType:'Order Type', colExFactory:'EXF (CDD - 2 days)',
-    colLots:'Lots', colSteps:'Steps', colEstEnd:'Est. Completion Date', colAreaOv:'Area (m²)',
+    colLots:'Lots', colSteps:'Steps', colEstEnd:'Est. Completion Date', colAreaOv:'Area (sqft)',
     colOverdue:'Overdue Tasks', colStatus:'Status',
     statTotal:'Total Orders', statOverdue:'Overdue Orders',
     statOk:'On Track', statProc:'Processes Involved',
     statUrgent:'Urgent Orders', statAllUrgent:'fully urgent',
-    statTasks:'Tasks in Range', statArea:'Total Area (m²)',
+    statTasks:'Tasks in Range', statArea:'Total Area (sqft)',
     statOverdueTasks:'Overdue Tasks', statActiveProc:'Active Processes',
     from:'From', to:'To', quick:'Quick', process:'Process',
     today:'Today', thisWeek:'This Week', next2w:'Next 2 Weeks',
     thisMonth:'This Month',
-    colProcess:'Process Step', colTasks:'Lots', colArea:'Total Area (m²)',
+    colProcess:'Process Step', colTasks:'Lots', colArea:'Total Area (sqft)',
     colOverdueTasks:'Overdue Tasks', colOverduePct:'Overdue %', colOrderTypes:'Order Type',
     granularity:'Granularity', daily:'Daily', weekly:'Weekly',
     routeLabel:'Production Route', lotsLabel:'Lots',
@@ -745,8 +735,8 @@ const TRANS = {
     allUrgent:'ALL URGENT', urgent:'Urgent', urgentOrders:'🚨 Urgent',
     uniqueParts:'unique part numbers', ofTotal:'of total',
     tab4:'🎯 Target vs Scheduled',
-    tgDate:'Date', tgProcess:'Process', tgDailyTarget:'Daily Target',
-    tgScheduled:'Scheduled Area', tgDiff:'Difference', tgVsPct:'vs Target %', tgStatus:'Status',
+    tgDate:'Date', tgProcess:'Process', tgDailyTarget:'Daily Target (sqft)',
+    tgScheduled:'Scheduled Area (sqft)', tgDiff:'Difference (sqft)', tgVsPct:'vs Target %', tgStatus:'Status',
     tgStatDate:'Date', tgStatSched:'Total Scheduled', tgStatMeeting:'Meeting Target (≥90%)', tgStatBelow:'Below 50% Target',
     tgOnTarget:'✓ On Target', tgNearTarget:'✓ Near Target', tgBelow:'⚠ Below Target', tgFarBelow:'✗ Far Below', tgNoData:'No Data',
     tgBreakdown:'Daily Breakdown — Scheduled vs Target',
@@ -774,15 +764,6 @@ const TRANS = {
     scClearAll:'Clear all', scSearchPlaceholder:'Search part number…',
     scNoOrdersYet:'No orders added yet. Search and click an order above.',
     scLegendOnTime:'On time', scLegendAtRisk:'At risk (≤3 days)', scLegendMiss:'Will miss deadline',
-    capTitle:'Capacity Gap', capFrom:'From', capTo:'To', capQuick:'Quick',
-    capThreshold:'Gap threshold', capBelow50:'Below 50%', capBelow60:'Below 60%',
-    capBelow70:'Below 70%', capBelow80:'Below 80%',
-    capToday:'Today', cap3d:'3 Days', capWeek:'Week', cap2w:'2 Weeks',
-    capLegendOnTarget:'≥80% on target', capLegendMod:'50–79% moderate',
-    capLegendGap:'Gap — no lots ready', capLegendAction:'Gap + lots ready to pull',
-    capClickHint:'Click any coloured cell for details',
-    capGapCells:'Gap Cells', capTotalIdle:'Total Idle', capActionable:'Actionable', capAreaGain:'Area Gain',
-    capProcGroup:'Process Group',
     colStation:'Station', colStepStart:'Step Start', colStepEnd:'Step End',
     colEstCompletion:'Est. Completion Date', colBacklog:'Backlog',
     colLotId:'Lot ID', colPanels:'Panels', colTotalPanels:'Total Panels',
@@ -792,6 +773,11 @@ const TRANS = {
     colOrderTypes:'Order Type', colAction:'Action',
     lblNoMatches:'No matches', lblGranularity:'Granularity',
     btnDaily:'Daily', btnWeekly:'Weekly', btnOnTrack:'On Track', btnOverdue:'Overdue',
+    settingsTitle:'Settings', settingsArea:'Area Calculation',
+    areaPailotLabel:'Pailot lot area (m²→sqft)',
+    areaPailotDesc:'Use the lot area column from Pailot, converted to sqft',
+    areaCalcLabel:'Panel Size × Qty (mm²→sqft)',
+    areaCalcDesc:'Calculate as (Panel Size mm² ÷ 92,903) × quantity panel',
     lotDrawerTitle:'Lot Plan', lotDrawerPN:'PN', lotDrawerSteps:'steps',
     lotDrawerProcess:'Process Step', lotDrawerStation:'Station',
     lotDrawerStart:'Start', lotDrawerEnd:'End', lotDrawerDuration:'Duration',
@@ -806,21 +792,20 @@ const TRANS = {
     clickUpload:'点击上传', orDrop:'或拖放文件',
     feat1:'总览 — 所有订单及批次级工序流程下钻',
     feat2:'工序积压 — 按日期范围查看各工序工作量',
-    feat3:'产出面积 — 各工序每日计划产出面积',
     search:'搜索', orderType:'订单类型', status:'状态',
     all:'全部', overdue:'逾期', onTrack:'正常',
     colPN:'料号', colPartNumber:'料号', colOrderType:'订单类型', colExFactory:'EXF (CDD - 2天)',
-    colLots:'批次数', colSteps:'工序数', colEstEnd:'预计完成日期', colAreaOv:'面积（m²）',
+    colLots:'批次数', colSteps:'工序数', colEstEnd:'预计完成日期', colAreaOv:'面积（sqft）',
     colOverdue:'逾期任务', colStatus:'状态',
     statTotal:'订单总数', statOverdue:'逾期订单',
     statOk:'正常订单', statProc:'涉及工序',
     statUrgent:'紧急订单', statAllUrgent:'全部紧急',
-    statTasks:'区间任务数', statArea:'总面积（m²）',
+    statTasks:'区间任务数', statArea:'总面积（sqft）',
     statOverdueTasks:'逾期任务数', statActiveProc:'活跃工序',
     from:'开始日期', to:'结束日期', quick:'快选', process:'工序',
     today:'今天', thisWeek:'本周', next2w:'未来两周',
     thisMonth:'本月',
-    colProcess:'工序', colTasks:'批次数', colArea:'总面积（m²）',
+    colProcess:'工序', colTasks:'批次数', colArea:'总面积（sqft）',
     colOverdueTasks:'逾期任务', colOverduePct:'逾期率', colOrderTypes:'订单类型',
     granularity:'粒度', daily:'日', weekly:'周',
     routeLabel:'生产路线', lotsLabel:'批次',
@@ -829,8 +814,8 @@ const TRANS = {
     allUrgent:'全部紧急', urgent:'紧急', urgentOrders:'🚨 紧急订单',
     uniqueParts:'个唯一料号', ofTotal:'占总数',
     tab4:'🎯 目标与计划对比',
-    tgDate:'日期', tgProcess:'工序', tgDailyTarget:'日目标',
-    tgScheduled:'计划面积', tgDiff:'差异', tgVsPct:'达成率', tgStatus:'状态',
+    tgDate:'日期', tgProcess:'工序', tgDailyTarget:'日目标（sqft）',
+    tgScheduled:'计划面积（sqft）', tgDiff:'差异（sqft）', tgVsPct:'达成率', tgStatus:'状态',
     tgStatDate:'日期', tgStatSched:'计划总面积', tgStatMeeting:'达标工序 (≥90%)', tgStatBelow:'低于50%目标',
     tgOnTarget:'✓ 达标', tgNearTarget:'✓ 接近目标', tgBelow:'⚠ 未达标', tgFarBelow:'✗ 严重不足', tgNoData:'无数据',
     tgBreakdown:'每日明细 — 计划 vs 目标',
@@ -858,15 +843,6 @@ const TRANS = {
     scClearAll:'清除全部', scSearchPlaceholder:'搜索料号…',
     scNoOrdersYet:'尚未添加订单，请在上方搜索并点击订单。',
     scLegendOnTime:'准时', scLegendAtRisk:'有风险（≤3天）', scLegendMiss:'将错过截止日',
-    capTitle:'产能缺口', capFrom:'开始', capTo:'结束', capQuick:'快选',
-    capThreshold:'缺口阈值', capBelow50:'低于50%', capBelow60:'低于60%',
-    capBelow70:'低于70%', capBelow80:'低于80%',
-    capToday:'今天', cap3d:'3天', capWeek:'本周', cap2w:'2周',
-    capLegendOnTarget:'≥80% 达标', capLegendMod:'50–79% 一般',
-    capLegendGap:'产能缺口 — 无可提前批次', capLegendAction:'产能缺口 + 可提前批次',
-    capClickHint:'点击彩色单元格查看详情',
-    capGapCells:'缺口格', capTotalIdle:'总空闲时间', capActionable:'可操作', capAreaGain:'潜在面积增益',
-    capProcGroup:'工序组',
     colStation:'站点', colStepStart:'工序开始', colStepEnd:'工序结束',
     colEstCompletion:'预计完成日期', colBacklog:'积压',
     colLotId:'批次编号', colPanels:'面板数', colTotalPanels:'总面板数',
@@ -876,6 +852,11 @@ const TRANS = {
     colOrderTypes:'订单类型', colAction:'操作',
     lblNoMatches:'无匹配结果', lblGranularity:'粒度',
     btnDaily:'每日', btnWeekly:'每周', btnOnTrack:'正常', btnOverdue:'逾期',
+    settingsTitle:'设置', settingsArea:'面积计算方式',
+    areaPailotLabel:'Pailot批次面积（m²→sqft）',
+    areaPailotDesc:'使用Pailot的批次面积列，转换为sqft',
+    areaCalcLabel:'面板尺寸 × 数量（mm²→sqft）',
+    areaCalcDesc:'计算方式：（面板尺寸mm² ÷ 92,903）× 面板数量',
     lotDrawerTitle:'批次计划', lotDrawerPN:'料号', lotDrawerSteps:'工序',
     lotDrawerProcess:'工序步骤', lotDrawerStation:'站点',
     lotDrawerStart:'开始', lotDrawerEnd:'结束', lotDrawerDuration:'时长',
@@ -892,7 +873,14 @@ function toggleLang() {
   LANG = LANG === 'en' ? 'zh' : 'en';
   document.getElementById('langBtn').textContent = LANG === 'en' ? '中文' : 'EN';
   applyTranslations();
+  // Translate settings panel
+  const sl = document.getElementById('areaSettingLabel'); if(sl) sl.textContent = t('settingsArea');
+  const l1 = document.getElementById('areaModeLabel1');   if(l1) l1.textContent = t('areaPailotLabel');
+  const d1 = document.getElementById('areaModeDesc1');    if(d1) d1.textContent = t('areaPailotDesc');
+  const l2 = document.getElementById('areaModeLabel2');   if(l2) l2.textContent = t('areaCalcLabel');
+  const d2 = document.getElementById('areaModeDesc2');    if(d2) d2.textContent = t('areaCalcDesc');
   const active = document.querySelector('.pane.active');
+  if (!active) return;
   if (active.id === 'pane-overview')    renderOverview();
   if (active.id === 'pane-backlog')     renderBacklog();
   if (active.id === 'pane-target')      renderTarget();
@@ -984,7 +972,7 @@ async function loadXlsx(file) {
     G.rows = raw.map(r => {
       const start = pDate(r['Start']), end = pDate(r['End']),
             dead  = pDate(r['Latest end']), exFac = pDate(r['ExFactoryDate']);
-      const area  = parseFloat(r['lot area'])||0;
+      const area  = calcArea(r['lot area'], r['Panel Size'], r['quantity panel']);
       const qty   = parseInt(r['quantity panel'])||0;
       const lot   = lotId(r['Task']);
       const dur   = (start && end) ? (end - start) / 3600000 : 0; // hours from End-Start
@@ -1008,14 +996,10 @@ async function loadXlsx(file) {
     setDI('bl-to',   baseDateStr);
 
     // Production Area — 14 days from base
-    setDI('pr-from', baseDateStr);
-    setDI('pr-to',   ymd(addDays(baseDate, 13)));
 
     // Equipment OEE — 3 days from base
     setDI('eq-from', baseDateStr);
     setDI('eq-to',   ymd(addDays(baseDate, 2)));
-    setDI('cap-from', baseDateStr);
-    setDI('cap-to',   ymd(addDays(baseDate, 13)));
 
     // Target vs Scheduled — day after base date
     const tgDate = ymd(addDays(baseDate, 1));
@@ -1222,7 +1206,7 @@ function renderOverview() {
         <td class="num"><b>${fmtN(o.lotCount)}</b></td>
         <td class="num">${fmtN(o.stepCount)}</td>
         <td class="num">${o.totalQty>0 ? fmtN(o.totalQty) : '–'}</td>
-        <td class="num">${o.totalArea>0 ? fmtN(o.totalArea,2) : '–'}</td>
+        <td class="num">${o.totalArea>0 ? fmtN(o.totalArea,1) : '–'}</td>
         <td class="num" ${late?'style="color:var(--red);font-weight:700"':''}>${fmtN(o.overdueCount||0)}</td>
         <td class="num">${fmtDt(o.maxEnd)}</td>
         <td class="num">${fmtS(o.exFactory)}</td>
@@ -1427,7 +1411,7 @@ function renderBacklog() {
         <td><button class="xbtn" onclick="toggleRow('${id}',this)">+</button></td>
         <td style="font-weight:700">${esc(p.name)}</td>
         <td class="num">${fmtN(p.count)}</td>
-        <td class="num">${fmtN(p.area,2)}</td>
+        <td class="num">${fmtN(p.area,1)}</td>
         <td class="num" ${red?'style="color:var(--red);font-weight:700"':''}>${fmtN(p.overdue)}</td>
         <td class="num" ${red?'style="color:var(--red);font-weight:700"':''}>${pct}%</td>
         <td class="num">${fmtN(p.oee.fabHrs,1)}</td>
@@ -1461,7 +1445,7 @@ function renderBacklog() {
                     <td><span class="lot-link" onclick="openLotDrawer('${esc(r._lot||'')}')">${esc(r._lot||'–')}</span></td>
                     <td><span class="badge b-neutral">${esc(r['order_type']||'')}</span></td>
                     <td class="num">${r._qty>0?fmtN(r._qty):'–'}</td>
-                    <td class="num">${fmtN(r._area,3)}</td>
+                    <td class="num">${fmtN(r._area,1)}</td>
                     <td>${esc(r['Station']||'')}</td>
                     <td class="num">${fmtDt(r._start)}</td>
                     <td class="num">${fmtDt(r._end)}</td>
@@ -1483,83 +1467,6 @@ function renderBacklog() {
 // ═══════════════════════════════════════════════════════
 //  PRODUCTION AREA MATRIX
 // ═══════════════════════════════════════════════════════
-function setGran(g,btn){
-  G.gran=g;
-  document.querySelectorAll('#pane-production .chip[id^="gran"]').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  renderProduction();
-}
-
-function renderProduction(){
-  if (!G.rows || !G.rows.length) return;
-  const fromStr=document.getElementById('pr-from').value;
-  const toStr  =document.getElementById('pr-to').value;
-  const q      =(document.getElementById('pr-q').value||'').trim().toLowerCase();
-  if(!fromStr||!toStr) return;
-
-  const from=new Date(fromStr+'T00:00:00'), to=new Date(toStr+'T23:59:59');
-
-  const buckets=[];
-  if(G.gran==='day'){ for(let d=new Date(from);d<=to;d=addDays(d,1)) buckets.push(new Date(d)); }
-  else              { for(let d=weekStart(from);d<=to;d=addDays(d,7)) buckets.push(new Date(d)); }
-
-  if(buckets.length>120){
-    document.getElementById('pr-matrix').innerHTML=`<tr><td style="padding:24px;color:var(--red)">Range too large (${buckets.length} cols). Select a smaller range or switch to Weekly.</td></tr>`;
-    return;
-  }
-
-  const bKey = d => G.gran==='day' ? ymd(d) : ymd(weekStart(d));
-  const rows  = G.rows.filter(r=>r._start&&r._start>=from&&r._start<=to);
-
-  const procMap=new Map();
-  for(const r of rows){
-    const p=r['process_name']||'Unknown';
-    const k=bKey(r._start);
-    if(!procMap.has(p)) procMap.set(p,new Map());
-    procMap.get(p).set(k,(procMap.get(p).get(k)||0)+r._area);
-  }
-
-  let procs=[...procMap.entries()].map(([name,bm])=>({
-    name, bm, total:[...bm.values()].reduce((s,v)=>s+v,0), rank:pcbRank(name)
-  })).sort((a,b)=>a.rank!==b.rank ? a.rank-b.rank : a.name.localeCompare(b.name));
-
-  if(q) procs=procs.filter(p=>p.name.toLowerCase().includes(q));
-  document.getElementById('pr-cnt').textContent=procs.length+' processes';
-
-  if(!procs.length){document.getElementById('pr-matrix').innerHTML=`<tr><td class="note">No data for selected range.</td></tr>`;return;}
-
-  procs.forEach(p=>{p.max=Math.max(...[...p.bm.values()],0.001);});
-  const bKeys=buckets.map(bKey);
-  const colTotals=bKeys.map(k=>procs.reduce((s,p)=>s+(p.bm.get(k)||0),0));
-  const grandTotal=colTotals.reduce((s,v)=>s+v,0);
-
-  const fmtBkt=d=>G.gran==='day'
-    ? d.toLocaleDateString('en-US',{month:'short',day:'numeric'})
-    : 'W'+pad(d.getMonth()+1)+'/'+pad(d.getDate());
-
-  let html=`<thead><tr>
-    <th class="sticky-both sticky-col">${t('colProcess')}</th>
-    ${buckets.map(b=>`<th class="sticky-row">${fmtBkt(b)}</th>`).join('')}
-    <th class="sticky-row" style="background:#e8f5e9;color:var(--green)">Total</th>
-  </tr></thead><tbody>`;
-
-  for(const p of procs){
-    html+=`<tr><td class="proc-cell">${esc(p.name)}</td>
-    ${bKeys.map(k=>{
-      const v=p.bm.get(k)||0;
-      const ratio=v/p.max;
-      const bg=v>0?`rgba(21,101,192,${(ratio*0.55).toFixed(2)})`:'transparent';
-      const color=ratio>0.6?'#fff':'inherit';
-      return `<td style="background:${bg};color:${color}">${v>0?fmtN(v,2):''}</td>`;
-    }).join('')}
-    <td class="t-total">${fmtN(p.total,2)}</td></tr>`;
-  }
-  html+=`<tr class="r-total"><td class="proc-cell">TOTAL</td>
-    ${colTotals.map(v=>`<td>${v>0?fmtN(v,2):''}</td>`).join('')}
-    <td class="t-total">${fmtN(grandTotal,2)}</td>
-  </tr></tbody>`;
-  document.getElementById('pr-matrix').innerHTML=html;
-}
 
 // ═══════════════════════════════════════════════════════
 //  TARGET VS SCHEDULED
@@ -2354,329 +2261,6 @@ function buildStationDetail(s, winS, winE, slotMs, slotLabel, numDays) {
       </table></div>
     </div>`;
   return html;
-}
-
-// ═══════════════════════════════════════════════════════
-//  CAPACITY GAP
-// ═══════════════════════════════════════════════════════
-// Process groups based on actual factory flow (from process charts)
-const CAP_GROUPS = [
-  {
-    key:'pth', label:'PTH Line',
-    procs:['沉铜前处理','除胶渣','沉铜','板电'],
-    entryProc:'沉铜前处理',
-    eligibleFn: s => s.has('沉铜'),
-  },
-  {
-    key:'eclipse', label:'Eclipse Line',
-    procs:['除胶渣','日蚀','板电'],
-    entryProc:'日蚀',
-    eligibleFn: s => s.has('日蚀') && !s.has('沉铜'),
-  },
-  {
-    key:'hasl', label:'HASL (喷锡)',
-    procs:['喷锡前处理','喷锡','喷锡后处理'],
-    entryProc:'喷锡前处理',
-    eligibleFn: s => s.has('喷锡'),
-  },
-  {
-    key:'enig', label:'ENIG (沉金)',
-    procs:['沉金前处理','沉金包边','沉金线','沉金后处理'],
-    entryProc:'沉金前处理',
-    eligibleFn: s => s.has('沉金线'),
-  },
-  {
-    key:'imtin', label:'Immersion Tin (沉锡)',
-    procs:['沉锡前处理','沉锡'],
-    entryProc:'沉锡前处理',
-    eligibleFn: s => s.has('沉锡'),
-  },
-];
-
-function capQuick(key) {
-  const today=dayOf(new Date()); let s,e;
-  if(key==='today'){s=today;e=today;}
-  else if(key==='3d'){s=today;e=addDays(today,2);}
-  else if(key==='week'){s=today;e=addDays(today,6);}
-  else{s=today;e=addDays(today,13);}
-  setDI('cap-from',ymd(s)); setDI('cap-to',ymd(e));
-  renderCapacity();
-}
-
-function renderCapacity() {
-  if (!G.rows || !G.rows.length) return;
-  const fromStr=document.getElementById('cap-from').value;
-  const toStr  =document.getElementById('cap-to').value;
-  const thresh =parseInt(document.getElementById('cap-thresh').value)||60;
-  if (!fromStr||!toStr) return;
-
-  const from=new Date(fromStr+'T00:00:00');
-  const to  =new Date(toStr+'T00:00:00');
-  const winE=addDays(to,1).getTime();
-  const days=[];
-  for (let d=new Date(from);d.getTime()<winE;d=addDays(d,1)) days.push(new Date(d));
-
-  // Build lot maps
-  const lotProcStart=new Map(), lotProcEnd=new Map(), lotMeta=new Map();
-  for (const r of G.rows) {
-    if (!r._lot||!r['process_name']) continue;
-    const lot=r._lot, proc=r['process_name'];
-    if (!lotProcStart.has(lot)) lotProcStart.set(lot,new Map());
-    if (!lotProcEnd.has(lot))   lotProcEnd.set(lot,new Map());
-    if (!lotMeta.has(lot))      lotMeta.set(lot,{pn:r['part number']||'',area:r._area||0,exFac:r._exFac,procSet:new Set()});
-    const sm=lotProcStart.get(lot);
-    if (r._start&&(!sm.has(proc)||r._start<sm.get(proc))) sm.set(proc,r._start);
-    const em=lotProcEnd.get(lot);
-    if (r._end&&(!em.has(proc)||r._end>em.get(proc))) em.set(proc,r._end);
-    lotMeta.get(lot).procSet.add(proc);
-  }
-
-  // Build per-group data
-  const groupData = CAP_GROUPS.map(grp => {
-    const entryRank=pcbRank(grp.entryProc);
-    // Day map: aggregate ALL procs in group
-    const procDayMap=new Map();
-    for (const r of G.rows) {
-      if (!r._start||!r._end||!grp.procs.includes(r['process_name'])) continue;
-      const dk=ymd(r._start);
-      if (!procDayMap.has(dk)) procDayMap.set(dk,[]);
-      procDayMap.get(dk).push(r);
-    }
-    // Pullable lots
-    const pullableLots=[];
-    for (const [lot,sm] of lotProcStart) {
-      const meta=lotMeta.get(lot);
-      if (!meta||!grp.eligibleFn(meta.procSet)) continue;
-      const entryStart=sm.get(grp.entryProc);
-      if (!entryStart) continue;
-      const em=lotProcEnd.get(lot)||new Map();
-      let latestPrecEnd=null;
-      for (const [proc,endDate] of em) {
-        if (pcbRank(proc)<entryRank&&(!latestPrecEnd||endDate>latestPrecEnd)) latestPrecEnd=endDate;
-      }
-      pullableLots.push({lot,pn:meta.pn,area:meta.area,exFac:meta.exFac,entryStart,latestPrecEnd});
-    }
-    return {...grp,procDayMap,pullableLots};
-  });
-
-  // Build cell map: grpKey → dayStr → cell
-  const cellMap={};
-  const allCells=[];
-  for (const grp of groupData) {
-    cellMap[grp.key]={};
-    for (const day of days) {
-      const dk=ymd(day);
-      const dayRows=grp.procDayMap.get(dk)||[];
-      const intervals=dayRows.filter(r=>r._end).map(r=>({s:r._start.getTime(),e:r._end.getTime()}));
-      const merged=mergeIntervals(intervals);
-      const ds=day.getTime(),de=ds+86400000;
-      let fabMs=0;
-      for (const iv of merged){const s=Math.max(iv.s,ds),e=Math.min(iv.e,de);if(e>s)fabMs+=(e-s);}
-      const fabHrs=fabMs/3600000;
-      const oee=Math.min(100,Math.round(fabMs/86400000*100));
-      const gapHrs=Math.max(0,24-fabHrs);
-      const lotCount=new Set(dayRows.map(r=>r._lot).filter(Boolean)).size;
-      const pullDayEnd=addDays(day,1);
-      const pullable=(grp.pullableLots||[]).filter(q=>
-        q.entryStart>day&&q.latestPrecEnd&&q.latestPrecEnd<=pullDayEnd&&q.entryStart.getTime()<winE
-      ).sort((a,b)=>(a.exFac||new Date(9e15))-(b.exFac||new Date(9e15)));
-      const areaGain=pullable.reduce((s,q)=>s+q.area,0);
-      const cell={grp,day,dk,fabHrs,oee,gapHrs,lotCount,pullable,areaGain,hasData:dayRows.length>0};
-      cellMap[grp.key][dk]=cell;
-      if (dayRows.length>0) allCells.push(cell);
-    }
-  }
-
-  // Stats
-  const gapCells=allCells.filter(c=>c.oee<thresh);
-  const cntEl=document.getElementById('cap-cnt');
-  const statsEl=document.getElementById('cap-stats');
-  if(cntEl) cntEl.textContent=gapCells.length+' gap cells';
-  if(statsEl) statsEl.innerHTML=`
-    <div class="stat s-red"><div class="stat-lbl">${t('capGapCells')}</div><div class="stat-val">${gapCells.length}</div><div class="stat-sub">below ${thresh}% OEE</div></div>
-    <div class="stat s-amber"><div class="stat-lbl">${t('capTotalIdle')}</div><div class="stat-val">${fmtN(gapCells.reduce((s,c)=>s+c.gapHrs,0),1)}h</div><div class="stat-sub">capacity unused</div></div>
-    <div class="stat s-green"><div class="stat-lbl">${t('capActionable')}</div><div class="stat-val">${gapCells.filter(c=>c.pullable.length>0).length}</div><div class="stat-sub">gaps with lots ready</div></div>
-    <div class="stat s-blue"><div class="stat-lbl">${t('capAreaGain')}</div><div class="stat-val">${fmtN(gapCells.reduce((s,c)=>s+c.areaGain,0),0)}</div><div class="stat-sub">sqft if all pulled</div></div>
-  `;
-
-  // Render heatmap
-  const thead=document.getElementById('cap-head');
-  const tbody=document.getElementById('cap-body');
-  if(!thead||!tbody) return;
-
-  let headHtml='<tr><th style="position:sticky;left:0;background:#f8fafc;min-width:150px;z-index:3" data-i="capProcGroup">Process Group</th>';
-  for (const day of days) {
-    headHtml+=`<th style="min-width:64px;text-align:center;font-size:.67rem;padding:6px 2px">${day.toLocaleDateString('en-US',{weekday:'short'})}<br>${day.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</th>`;
-  }
-  headHtml+='</tr>';
-  thead.innerHTML=headHtml;
-
-  tbody.innerHTML='';
-  for (const grp of groupData) {
-    let rowHtml=`<tr><td style="position:sticky;left:0;background:#fff;font-weight:700;font-size:.79rem;padding:6px 12px;border-right:2px solid var(--border);white-space:nowrap;z-index:2">${esc(grp.label)}</td>`;
-    for (const day of days) {
-      const cell=cellMap[grp.key][ymd(day)];
-      if (!cell||!cell.hasData) { rowHtml+='<td style="background:#f8fafc;min-width:64px"></td>'; continue; }
-      let bg,tc;
-      if      (cell.oee>=80)                 { bg='#2e7d32'; tc='#fff'; }
-      else if (cell.oee>=50)                 { bg='#f9a825'; tc='#4a2c00'; }
-      else if (cell.pullable.length>0)       { bg='#e3f2fd'; tc='#0d47a1'; }
-      else                                    { bg='#c62828'; tc='#fff'; }
-      const isGap=cell.oee<thresh;
-      const ring=isGap&&cell.pullable.length>0?'outline:2px solid #1565c0;outline-offset:-2px;':'';
-      const click=isGap?`onclick="capOpenModal('${grp.key}','${ymd(day)}')" style="cursor:pointer;background:${bg};color:${tc};${ring}"`:
-                        `style="background:${bg};color:${tc}"`;
-      rowHtml+=`<td class="cap-cell" ${click} title="${grp.label} ${ymd(day)} | OEE:${cell.oee}% Gap:${fmtN(cell.gapHrs,1)}h Lots:${cell.pullable.length}">
-        ${cell.oee}%${isGap&&cell.pullable.length>0?'<br><span style="font-size:.62rem">'+cell.pullable.length+'&#9654;</span>':''}
-      </td>`;
-    }
-    rowHtml+='</tr>';
-    tbody.insertAdjacentHTML('beforeend',rowHtml);
-  }
-
-  window._capCellMap=cellMap;
-  window._capGroupData=groupData;
-}
-
-function capOpenModal(grpKey,dk) {
-  const grp=(window._capGroupData||[]).find(g=>g.key===grpKey);
-  const cell=window._capCellMap&&window._capCellMap[grpKey]&&window._capCellMap[grpKey][dk];
-  if (!grp||!cell) return;
-
-  document.getElementById('cap-modal-title').textContent=
-    grp.label+' — '+cell.day.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  document.getElementById('cap-modal-sub').textContent=
-    'OEE: '+cell.oee+'%  ·  Fab: '+fmtN(cell.fabHrs,1)+'h  ·  Gap: '+fmtN(cell.gapHrs,1)+'h  ·  '+cell.lotCount+' lots currently scheduled';
-
-  const body=document.getElementById('cap-modal-body');
-
-  if (!cell.pullable.length) {
-    body.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">No part numbers are ready to pull into this process on this day — all eligible lots still have preceding steps to complete.</div>';
-  } else {
-    // Group pullable lots by PN
-    const pnMap = new Map();
-    for (const q of cell.pullable) {
-      if (!pnMap.has(q.pn)) pnMap.set(q.pn, { pn:q.pn, lots:[], area:0, exFac:q.exFac, entryStart:q.entryStart });
-      const g = pnMap.get(q.pn);
-      g.lots.push(q);
-      g.area += q.area;
-      // Keep tightest exFac
-      if (q.exFac && (!g.exFac || q.exFac < g.exFac)) g.exFac = q.exFac;
-      // Keep earliest scheduled start
-      if (q.entryStart < g.entryStart) g.entryStart = q.entryStart;
-    }
-    const pnList = [...pnMap.values()].sort((a,b)=>(a.exFac||new Date(9e15))-(b.exFac||new Date(9e15)));
-
-    const rows = pnList.map((p,i) => {
-      const daysEarlier = Math.round((p.entryStart - cell.day)/86400000);
-      const curBuf = p.exFac ? Math.round((p.exFac - p.entryStart)/86400000) : null;
-      const newBuf = p.exFac ? Math.round((p.exFac - cell.day)/86400000)     : null;
-      const gain   = (curBuf!==null&&newBuf!==null) ? newBuf - curBuf : null;
-      const rc = newBuf===null?'#90a4ae':newBuf<0?'#c62828':newBuf<3?'#f57f17':'#2e7d32';
-      const rl = newBuf===null?'No date':newBuf<0?'Miss CDD':newBuf<3?'Tight':'Comfortable';
-      return `<tr>
-        <td style="font-weight:700">${esc(p.pn)}</td>
-        <td class="num">${p.lots.length}</td>
-        <td class="num">${fmtN(p.area,0)}</td>
-        <td class="num">${fmtS(p.exFac)}</td>
-        <td class="num" style="color:var(--muted)">${fmtS(p.entryStart)}</td>
-        <td class="num" style="color:#2e7d32;font-weight:700">+${daysEarlier}d</td>
-        <td class="num">${curBuf!==null?(curBuf>=0?'+':'')+curBuf+'d':'–'}</td>
-        <td class="num" style="color:${rc};font-weight:700">${newBuf!==null?(newBuf>=0?'+':'')+newBuf+'d':'–'}</td>
-        <td class="num" style="color:#2e7d32">${gain!==null?'+'+gain+'d':''}</td>
-        <td><span style="background:${rc}22;color:${rc};border:1px solid ${rc}55;border-radius:4px;padding:2px 7px;font-size:.7rem;font-weight:700">${rl}</span></td>
-        <td>
-          <button onclick="capCopyInstruction('${esc(p.pn)}','${esc(grp.label)}','${dk}',${daysEarlier})"
-            style="padding:3px 10px;border-radius:4px;border:1px solid var(--blue);background:#fff;color:var(--blue);font-size:.72rem;cursor:pointer;white-space:nowrap">
-            Copy instruction
-          </button>
-        </td>
-      </tr>`;
-    }).join('');
-
-    const totalArea = pnList.reduce((s,p)=>s+p.area,0);
-    const instrAll  = capBuildInstructions(pnList, grp.label, cell.day);
-
-    body.innerHTML=`
-      <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <span style="font-size:.82rem;color:var(--muted)">
-          <strong style="color:var(--text)">${pnList.length} part number${pnList.length!==1?'s':''}</strong> ready to pull &nbsp;·&nbsp;
-          <strong style="color:var(--blue)">${fmtN(totalArea,0)} sqft potential area gain</strong>
-        </span>
-        <button onclick="capCopyAll()" style="margin-left:auto;padding:5px 14px;border-radius:5px;border:1.5px solid var(--green);background:#fff;color:var(--green);font-size:.78rem;font-weight:700;cursor:pointer">
-          📋 Copy all instructions
-        </button>
-      </div>
-      <div id="cap-copy-confirm" style="display:none;padding:8px 12px;background:#e8f5e9;border-radius:6px;color:#2e7d32;font-size:.78rem;font-weight:700;margin-bottom:10px">
-        ✓ Copied to clipboard
-      </div>
-      <div style="overflow-x:auto"><table style="font-size:.78rem;width:100%">
-        <thead><tr>
-          <th>${t("colPN")}</th><th class="num">Lots</th><th class="num">Area (sqft)</th>
-          <th class="num">CDD</th><th class="num">Currently Starts</th>
-          <th class="num">Pull Forward</th><th class="num">Current Buffer</th>
-          <th class="num">New Buffer</th><th class="num">Buffer Gain</th>
-          <th>Risk</th><th>Action</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table></div>
-    `;
-    // Store for copy-all
-    window._capCurrentInstructions = instrAll;
-    window._capCurrentPNs = pnList;
-    window._capCurrentGrp = grp;
-    window._capCurrentDay = cell.day;
-  }
-
-  const ov=document.getElementById('cap-modal-overlay');
-  ov.style.display='flex';
-  ov.onclick=e=>{if(e.target===ov)capCloseModal();};
-}
-
-function capBuildInstructions(pnList, grpLabel, day) {
-  const dateStr = day.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  let text = `Capacity Gap Action — ${grpLabel}\n`;
-  text += `Pull forward request for ${dateStr}\n`;
-  text += `${'─'.repeat(50)}\n`;
-  for (const p of pnList) {
-    const daysEarlier = Math.round((p.entryStart - day)/86400000);
-    const curBuf = p.exFac ? Math.round((p.exFac - p.entryStart)/86400000) : null;
-    const newBuf = p.exFac ? Math.round((p.exFac - day)/86400000) : null;
-    text += `PN: ${p.pn}\n`;
-    text += `  Lots: ${p.lots.length}  |  Area: ${Math.round(p.area)} sqft  |  CDD: ${p.exFac?fmtS(p.exFac):'–'}\n`;
-    text += `  Currently starts ${grpLabel}: ${fmtS(p.entryStart)}\n`;
-    text += `  Requested start: ${fmtS(day)} (${daysEarlier} days earlier)\n`;
-    if (curBuf!==null&&newBuf!==null) text += `  CDD buffer: ${curBuf>=0?'+':''}${curBuf}d → ${newBuf>=0?'+':''}${newBuf}d (gain: +${newBuf-curBuf}d)\n`;
-    text += '\n';
-  }
-  text += `Generated: ${new Date().toLocaleString()}`;
-  return text;
-}
-
-function capCopyInstruction(pn, grpLabel, dk, daysEarlier) {
-  const pnList = (window._capCurrentPNs||[]).filter(p=>p.pn===pn);
-  const day = window._capCurrentDay;
-  if (!pnList.length||!day) return;
-  const text = capBuildInstructions(pnList, grpLabel, day);
-  navigator.clipboard.writeText(text).then(()=>capShowCopyConfirm()).catch(()=>prompt('Copy this:',text));
-}
-
-function capCopyAll() {
-  const text = window._capCurrentInstructions;
-  if (!text) return;
-  navigator.clipboard.writeText(text).then(()=>capShowCopyConfirm()).catch(()=>prompt('Copy this:',text));
-}
-
-function capShowCopyConfirm() {
-  const el = document.getElementById('cap-copy-confirm');
-  if (!el) return;
-  el.style.display='block';
-  setTimeout(()=>{ el.style.display='none'; }, 2500);
-}
-
-function capCloseModal(){
-  const ov=document.getElementById('cap-modal-overlay');
-  if(ov) ov.style.display='none';
 }
 
 // ═══════════════════════════════════════════════════════

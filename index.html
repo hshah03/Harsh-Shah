@@ -180,7 +180,7 @@ tbody td.wrap{white-space:normal;max-width:280px}
     </ul>
   </div>
 </div>
-<input type="file" id="fileIn" accept=".xlsx" style="display:none">
+<input type="file" id="fileIn" accept=".xlsx,.csv" style="display:none">
 
 <div id="app">
   <header class="hdr">
@@ -208,7 +208,7 @@ tbody td.wrap{white-space:normal;max-width:280px}
             <label style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;border:1.5px solid var(--border)" id="areaOpt2">
               <input type="radio" name="areaMode" value="calc" checked onchange="setAreaMode('calc')" style="margin-top:2px;flex-shrink:0">
               <div>
-                <div style="font-size:.8rem;font-weight:600;color:var(--text)" id="areaModeLabel2">Panel Size × Qty (mm²→sqft)</div>
+                <div style="font-size:.8rem;font-weight:600;color:var(--text)" id="areaModeLabel2">Panel Size × Qty ÷ 1,000,000 × 10.764</div>
                 <div style="font-size:.72rem;color:var(--muted)" id="areaModeDesc2">Calculate as (Panel Size mm² ÷ 92,903) × quantity panel</div>
               </div>
             </label>
@@ -510,9 +510,10 @@ tbody td.wrap{white-space:normal;max-width:280px}
                 <th class="num" data-i="eqColTasks">Lots</th>
                 <th class="num" data-i="eqColPNs">Unique PNs</th>
                 <th class="num" data-i="eqColCO">Changeovers</th>
-                <th class="num" data-i="eqColFab" data-i="eqColFab">In Production (hrs)</th>
+                <th class="num" data-i="eqColSetup">Setup (hrs)</th>
+                <th class="num" data-i="eqColFab">In Production (hrs)</th>
                 <th class="num" data-i="eqColAvgCt">Avg CT (hrs/lot)</th>
-                <th class="num" data-i="eqColIdle" data-i="eqColIdle">Idle Time (hrs)</th>
+                <th class="num" data-i="eqColIdle">Idle Time (hrs)</th>
                 <th class="num" data-i="eqColOEE">OEE %</th>
                 <th data-i="eqColBar">Timeline</th>
               </tr>
@@ -617,7 +618,7 @@ const PROCESS_TARGETS = {
 // ═══════════════════════════════════════════════════════
 const PCB_ORDER = [
   // Inner layer dry film + etching
-  '内层前处理贴膜','内层曝光','内层干菲林','内层酸性蚀刻',
+  '内层前处理贴膜','内层干菲林','内层曝光','内层酸性蚀刻',
   // Pressing / lamination
   '棕氧化','排板','压合',
   // X-ray + drilling
@@ -625,7 +626,7 @@ const PCB_ORDER = [
   // Plating 1 — desmear, copper, panel plate
   '日蚀','除胶渣','沉铜','板电',
   // Outer layer dry film
-  '外层前处理贴膜','外层曝光','外层显影',
+  '外层前处理贴膜','外层干菲林','外层曝光','外层显影','外层AOI',
   // Outer etch + plating 2
   '酸性蚀刻','图电','碱性蚀刻','树脂塞孔','树脂研磨',
   // Solder mask
@@ -676,7 +677,8 @@ function setAreaMode(mode) {
   // If data is loaded — recalculate _area on every row and re-render
   if (!G.rows || !G.rows.length) return;
   for (const r of G.rows) {
-    r._area = calcArea(r['lot area'], r['Panel Size'], r['quantity panel']);
+    const resolvedPS = r['Panel Size'] || (G.pnPanelSize && G.pnPanelSize.get(r['part number']));
+    r._area = calcArea(r['lot area'], resolvedPS, r['quantity panel']);
   }
   // Rebuild order totals (totalArea, totalQty affected)
   buildOrders();
@@ -693,13 +695,14 @@ function setAreaMode(mode) {
 
 function calcArea(lotAreaM2, panelSizeMm2, qty) {
   if (SETTINGS.areaMode === 'calc') {
-    // Panel Size mm² ÷ 92,903 (mm² per sqft) × qty
     const ps = parseFloat(panelSizeMm2) || 0;
     const q  = parseInt(qty) || 0;
-    return ps > 0 && q > 0 ? (ps / 92903) * q : (parseFloat(lotAreaM2)||0) * 10.764;
+    // Panel Size (mm²) × Qty ÷ 1,000,000 × 10.764 = sqft
+    return ps > 0 && q > 0 ? (ps * q / 1000000) * 10.764 : 0;
   }
-  // Default: Pailot lot area m² → sqft
-  return (parseFloat(lotAreaM2)||0) * 10.764;
+  // Pailot mode: lot area from SQL is already in sqft (pcsArea × QtyPcs × 10.764)
+  // Use directly — no conversion needed
+  return parseFloat(lotAreaM2) || 0;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -757,7 +760,7 @@ const TRANS = {
     eqProcesses:'processes', eqProcOEE:'Process OEE',
     eqColStation:'Station / Equipment', eqColTasks:'Lots',
     eqColPNs:'Unique PNs', eqColCO:'Changeovers',
-    eqColFab:'In Production (hrs)', eqColAvgCt:'Avg CT (hrs/lot)', eqColIdle:'Idle Time (hrs)', eqColOEE:'OEE %', eqColBar:'Timeline',
+    eqColSetup:'Setup (hrs)', eqColFab:'In Production (hrs)', eqColAvgCt:'Avg CT (hrs/lot)', eqColIdle:'Idle Time (hrs)', eqColOEE:'OEE %', eqColBar:'Timeline',
     eqBatchOpp:'⚡ Batching Opportunity',
     eqBatchDesc:'Same PN runs non-consecutively — resequencing to batch together eliminates avoidable setups.',
     eqScheduled:'Scheduled', eqIdle:'Idle',
@@ -769,15 +772,15 @@ const TRANS = {
     colLotId:'Lot ID', colPanels:'Panels', colTotalPanels:'Total Panels',
     colQty:'Total Panels', colDeadline:'Deadline',
     colStart:'Start', colEnd:'End', colTotal:'Total',
-    colFabTime:'In Production (hrs)', colIdleTime:'Idle Time (hrs)', colEstOEE:'Est. OEE %',
+    colSetup:'Setup (hrs)', colFabTime:'In Production (hrs)', colIdleTime:'Idle Time (hrs)', colEstOEE:'Est. OEE %',
     colOrderTypes:'Order Type', colAction:'Action',
     lblNoMatches:'No matches', lblGranularity:'Granularity',
     btnDaily:'Daily', btnWeekly:'Weekly', btnOnTrack:'On Track', btnOverdue:'Overdue',
     settingsTitle:'Settings', settingsArea:'Area Calculation',
-    areaPailotLabel:'Pailot lot area (m²→sqft)',
-    areaPailotDesc:'Use the lot area column from Pailot, converted to sqft',
-    areaCalcLabel:'Panel Size × Qty (mm²→sqft)',
-    areaCalcDesc:'Calculate as (Panel Size mm² ÷ 92,903) × quantity panel',
+    areaPailotLabel:'SQL lot area (pieces-based, sqft)',
+    areaPailotDesc:'Uses lot area from SQL query — already corrected sqft (pcsArea × QtyPcs × 10.764)',
+    areaCalcLabel:'Panel Size × Qty ÷ 1,000,000 × 10.764',
+    areaCalcDesc:'(Panel Size mm² × Qty) ÷ 1,000,000 × 10.764 = sqft',
     lotDrawerTitle:'Lot Plan', lotDrawerPN:'PN', lotDrawerSteps:'steps',
     lotDrawerProcess:'Process Step', lotDrawerStation:'Station',
     lotDrawerStart:'Start', lotDrawerEnd:'End', lotDrawerDuration:'Duration',
@@ -836,7 +839,7 @@ const TRANS = {
     eqProcesses:'工序', eqProcOEE:'工序OEE',
     eqColStation:'站点/设备', eqColTasks:'批次数',
     eqColPNs:'唯一料号', eqColCO:'换型次数',
-    eqColFab:'在产时间(h)', eqColAvgCt:'平均节拍(h/批)', eqColIdle:'空闲时间(h)', eqColOEE:'OEE %', eqColBar:'时间轴',
+    eqColSetup:'换型时间(h)', eqColFab:'在产时间(h)', eqColAvgCt:'平均节拍(h/批)', eqColIdle:'空闲时间(h)', eqColOEE:'OEE %', eqColBar:'时间轴',
     eqBatchOpp:'⚡ 合批机会',
     eqBatchDesc:'同一料号非连续排产 — 重新排序可消除不必要的换型设置。',
     eqScheduled:'生产中', eqIdle:'空闲',
@@ -853,10 +856,10 @@ const TRANS = {
     lblNoMatches:'无匹配结果', lblGranularity:'粒度',
     btnDaily:'每日', btnWeekly:'每周', btnOnTrack:'正常', btnOverdue:'逾期',
     settingsTitle:'设置', settingsArea:'面积计算方式',
-    areaPailotLabel:'Pailot批次面积（m²→sqft）',
+    areaPailotLabel:'SQL批次面积（基于面积，已转换sqft）',
     areaPailotDesc:'使用Pailot的批次面积列，转换为sqft',
-    areaCalcLabel:'面板尺寸 × 数量（mm²→sqft）',
-    areaCalcDesc:'计算方式：（面板尺寸mm² ÷ 92,903）× 面板数量',
+    areaCalcLabel:'面板尺寸 × 数量 ÷ 1,000,000 × 10.764',
+    areaCalcDesc:'（面板尺寸mm² × 数量）÷ 1,000,000 × 10.764 = sqft',
     lotDrawerTitle:'批次计划', lotDrawerPN:'料号', lotDrawerSteps:'工序',
     lotDrawerProcess:'工序步骤', lotDrawerStation:'站点',
     lotDrawerStart:'开始', lotDrawerEnd:'结束', lotDrawerDuration:'时长',
@@ -905,6 +908,7 @@ let G = {
   activeTypes: new Set(['__all__']),
   activeStatus: 'all',
   gran: 'day',
+  pnPanelSize: new Map(),
 };
 let OV_SORT = 'exFactory', OV_ASC = true;
 
@@ -948,15 +952,69 @@ function lotId(task) {
 //  FILE LOADING
 // ═══════════════════════════════════════════════════════
 document.getElementById('fileIn').addEventListener('change', e => {
-  const f = e.target.files[0]; if(f) loadXlsx(f); e.target.value='';
+  const f = e.target.files[0]; if(f) loadFile(f); e.target.value='';
 });
 const dz = document.getElementById('dropZone');
 dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag-over');});
 dz.addEventListener('dragleave', ()=>dz.classList.remove('drag-over'));
 dz.addEventListener('drop', e=>{
   e.preventDefault(); dz.classList.remove('drag-over');
-  const f=e.dataTransfer.files[0]; if(f&&f.name.endsWith('.xlsx')) loadXlsx(f);
+  const f=e.dataTransfer.files[0];
+  if(f&&(f.name.endsWith('.xlsx')||f.name.endsWith('.csv'))) loadFile(f);
 });
+
+// Column name mapping: SQL output → dashboard internal names
+// SQL columns use underscores; dashboard uses spaces/brackets
+const COL_MAP = {
+  'Task':'Task', 'part_number':'part number', 'Station':'Station',
+  'Start':'Start', 'End':'End', 'State':'State',
+  'Setup_time_h':'Setup time[h]', 'Processing_time_h':'Processing time[h]',
+  'Tardiness_h':'Tardiness[h]', 'Latest_end':'Latest end',
+  'order_type':'order_type', 'in_backlog':'in backlog',
+  'process_name':'process_name', 'Scheduling_Group':'Scheduling Group',
+  'ExFactoryDate':'ExFactoryDate', 'Panel_Size_mm2':'Panel Size',
+  'lot_area_sqft':'lot area', 'Order_number':'Order number',
+  'quantity_panel':'quantity panel'
+};
+const CSV_HEADERS = Object.keys(COL_MAP);
+
+async function loadFile(file) {
+  if (file.name.endsWith('.csv')) {
+    await loadCsv(file);
+  } else {
+    await loadXlsx(file);
+  }
+}
+
+async function loadCsv(file) {
+  showLoad('Reading CSV file…');
+  try {
+    const text = await file.text();
+    showLoad('Parsing CSV…'); await tick();
+    // Remove null bytes, split into lines
+    const lines = text.replace(/\x00/g,'').split('\n').filter(l=>l.trim());
+    // Detect if first line is a header (check if first field looks like a column name)
+    const firstField = lines[0].split(',')[0].trim().replace(/^"|"$/g,'');
+    const hasHeader = isNaN(firstField) && !firstField.match(/^\d{4}-\d{2}/);
+    const dataLines = hasHeader ? lines.slice(1) : lines;
+    // Parse CSV rows and remap column names to dashboard format
+    const raw = dataLines.map(line => {
+      const vals = line.split('\t').length > 5
+        ? line.split('\t')   // TSV (tab-separated, from SQL export)
+        : line.split(',');    // CSV
+      const vals2 = vals.map(v=>v.trim().replace(/^"|"$/g,'').replace(/\x00/g,''));
+      const row = {};
+      // Map SQL column names → dashboard column names
+      CSV_HEADERS.forEach((sqlCol, i) => {
+        const dashCol = COL_MAP[sqlCol] || sqlCol;
+        row[dashCol] = vals2[i] || '';
+      });
+      return row;
+    }).filter(r=>r['Task']&&r['Task'].trim());
+    showLoad(`Normalising ${raw.length.toLocaleString()} rows…`); await tick();
+    await processRows(raw, file);
+  } catch(e) { hideLoad(); alert('Error loading CSV:\n'+e.message); }
+}
 
 async function loadXlsx(file) {
   showLoad('Reading Excel file…');
@@ -968,20 +1026,86 @@ async function loadXlsx(file) {
     const raw = XLSX.utils.sheet_to_json(ws,{raw:false,defval:''});
 
     showLoad(`Normalising ${raw.length.toLocaleString()} rows…`); await tick();
+    await processRows(raw, file);
+  } catch(e) { hideLoad(); alert('Error loading file:\n'+e.message+'\n\n'+(e.stack||'')); }
+}
 
+async function processRows(raw, file) {
+  try {
     G.rows = raw.map(r => {
       const start = pDate(r['Start']), end = pDate(r['End']),
             dead  = pDate(r['Latest end']), exFac = pDate(r['ExFactoryDate']);
       const area  = calcArea(r['lot area'], r['Panel Size'], r['quantity panel']);
       const qty   = parseInt(r['quantity panel'])||0;
       const lot   = lotId(r['Task']);
-      const dur   = (start && end) ? (end - start) / 3600000 : 0; // hours from End-Start
+      const setupHrs = parseFloat(r['Setup time[h]'])||0;
+      const procHrs  = parseFloat(r['Processing time[h]'])||0;
+      const dur   = (start && end) ? (end - start) / 3600000 : 0;
       return { ...r, _start:start, _end:end, _dead:dead, _exFac:exFac, _area:area, _qty:qty, _dur:dur,
-               _lot:lot, _late:false }; // _late recalculated at lot level after all rows parsed
+               _setupHrs:setupHrs, _procHrs:procHrs,
+               _lot:lot, _late:false };
     });
+
+    // ── Merge setup + processing rows ──────────────────────────────
+    // New CSV has 2 rows per lot+process: one setup row, one processing row
+    // Merge them into a single row: setup start → processing end,
+    // keeping _setupHrs and _procHrs separately on the merged row
+    {
+      const mergeMap = new Map(); // key = lot|process|station → merged row
+      const merged = [];
+      for (const r of G.rows) {
+        const key = `${r._lot}|${r['process_name']}|${r['Station']}`;
+        if (r._setupHrs > 0 && r._procHrs === 0) {
+          // Setup row — store as base
+          mergeMap.set(key, { ...r });
+        } else if (r._procHrs > 0 && r._setupHrs === 0 && mergeMap.has(key)) {
+          // Processing row — merge with setup row
+          const base = mergeMap.get(key);
+          base._end      = r._end;       // extend end to processing end
+          base._procHrs  = r._procHrs;
+          base._dur      = base._setupHrs + r._procHrs;
+          mergeMap.delete(key);
+          merged.push(base);
+        } else if (r._procHrs > 0 && r._setupHrs === 0 && !mergeMap.has(key)) {
+          // Processing row with no setup row — keep as-is
+          merged.push(r);
+        } else if (r._setupHrs > 0 && r._procHrs === 0 && mergeMap.has(key)) {
+          // Flush previous unmatched setup row first
+          merged.push(mergeMap.get(key));
+          mergeMap.set(key, { ...r });
+        } else {
+          // Single row with both or neither — keep as-is
+          merged.push(r);
+        }
+      }
+      // Flush any remaining unmatched setup rows
+      for (const r of mergeMap.values()) merged.push(r);
+      // Sort by start time to restore order
+      merged.sort((a,b) => (a._start||0) - (b._start||0));
+      G.rows = merged;
+    }
 
     showLoad('Building orders…'); await tick();
     buildOrders();
+
+    // Build PN → Panel Size lookup (fills gaps where Panel Size is missing for a row
+    // but exists for the same PN elsewhere in the file)
+    const pnPanelSize = new Map();
+    for (const r of G.rows) {
+      const ps = r['Panel Size'];
+      if (r['part number'] && ps && parseFloat(ps) > 0) {
+        if (!pnPanelSize.has(r['part number'])) {
+          pnPanelSize.set(r['part number'], parseFloat(ps));
+        }
+      }
+    }
+    G.pnPanelSize = pnPanelSize;
+
+    // Re-calculate _area now that lookup is available
+    for (const r of G.rows) {
+      r._area = calcArea(r['lot area'], r['Panel Size'] || pnPanelSize.get(r['part number']), r['quantity panel']);
+    }
+    buildOrders(); // rebuild totals with corrected areas
 
     const allStarts = G.rows.map(r=>r._start).filter(Boolean);
     const dMin = new Date(Math.min(...allStarts));
@@ -1420,7 +1544,7 @@ function renderBacklog() {
         <td class="wrap">${p.types.map(ty=>`<span class="badge b-neutral" style="margin:1px">${esc(ty)}</span>`).join('')}</td>
       </tr>
       <tr class="xrow" id="${id}">
-        <td class="xcell" colspan="12">
+        <td class="xcell" colspan="13">
           <div class="xinner">
             <div class="xinner-title">${esc(p.name)} — ${p.count} tasks</div>
             <div class="tbl-scr"><table>
@@ -1447,6 +1571,7 @@ function renderBacklog() {
                     <td class="num">${r._qty>0?fmtN(r._qty):'–'}</td>
                     <td class="num">${fmtN(r._area,1)}</td>
                     <td>${esc(r['Station']||'')}</td>
+                    <td class="num">${r._setupHrs>0?fmtN(r._setupHrs,2):'–'}</td>
                     <td class="num">${fmtDt(r._start)}</td>
                     <td class="num">${fmtDt(r._end)}</td>
                     <td class="num" style="font-weight:600">${fmtDt(lotEstEnd.get(r._lot)||null)}</td>
@@ -1454,7 +1579,7 @@ function renderBacklog() {
                     <td>${r._late?`<span class="badge b-overdue">${t('badgeLate')}</span>`:`<span class="badge b-ok">${t('badgeGood')}</span>`}</td>
                     <td style="font-size:.72rem;color:var(--muted)">${esc(r['in backlog']||'')}</td>
                   </tr>`).join('')}
-                ${p.tasks.length>300?`<tr><td colspan="12" class="note">… and ${p.tasks.length-300} more</td></tr>`:''}
+                ${p.tasks.length>300?`<tr><td colspan="13" class="note">… and ${p.tasks.length-300} more</td></tr>`:''}
               </tbody>
             </table></div>
           </div>
@@ -2111,7 +2236,8 @@ function renderEquipment() {
       const changeovers=calcChangeovers(tasks);
       const batchIssues=isDrilling?detectBatchingIssues(tasks):new Map();
       const avgCt=lotCount>0?fabHrs/lotCount:0;
-      return {stn,tasks,merged,fabHrs,idleHrs,oee,uniquePNs,lotCount,avgCt,changeovers,batchIssues,isDrilling};
+      const setupHrs=tasks.reduce((s,r)=>s+(r._setupHrs||0),0);
+      return {stn,tasks,merged,fabHrs,idleHrs,oee,uniquePNs,lotCount,avgCt,setupHrs,changeovers,batchIssues,isDrilling};
     }).sort((a,b)=>a.stn.localeCompare(b.stn));
 
     const allTasks=[...stnMap.values()].flat();
@@ -2147,7 +2273,7 @@ function renderEquipment() {
 
     tbodyEl.insertAdjacentHTML('beforeend',`
       <tr style="background:#f0f4f8;border-top:2px solid var(--border)">
-        <td colspan="10" style="padding:7px 14px">
+        <td colspan="11" style="padding:7px 14px">
           <span style="font-weight:800;font-size:.84rem;color:var(--hdr)">${esc(p.proc)}</span>
           ${batchBadge}
           <span style="font-size:.74rem;color:var(--muted);margin-left:8px">${p.stations.length} station${p.stations.length!==1?'s':''}</span>
@@ -2176,6 +2302,7 @@ function renderEquipment() {
           <td class="num">${fmtN(s.lotCount)}</td>
           <td class="num">${fmtN(s.uniquePNs)}</td>
           <td class="num">${coBadge}</td>
+          <td class="num">${fmtN(s.setupHrs,1)}</td>
           <td class="num">${fmtN(s.fabHrs,1)}</td>
           <td class="num" style="color:var(--muted)">${s.avgCt>0?fmtN(s.avgCt,2):'–'}</td>
           <td class="num" style="color:var(--muted)">${fmtN(s.idleHrs,1)}</td>
@@ -2183,7 +2310,7 @@ function renderEquipment() {
           <td>${oeeBar}</td>
         </tr>
         <tr id="xrow-${rowId}" style="display:none">
-          <td colspan="10" style="padding:0;border-bottom:2px solid var(--blue-lt)">
+          <td colspan="11" style="padding:0;border-bottom:2px solid var(--blue-lt)">
             <div id="xinner-${rowId}" style="padding:14px 18px 14px 36px;background:#fafcff"></div>
           </td>
         </tr>
@@ -2318,6 +2445,7 @@ function openLotDrawer(lotId) {
       '<th style="padding:8px 12px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border)">' + t('lotDrawerStation') + '</th>' +
       '<th style="padding:8px 12px;text-align:right;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap">' + t('lotDrawerStart') + '</th>' +
       '<th style="padding:8px 12px;text-align:right;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap">' + t('lotDrawerEnd') + '</th>' +
+      '<th style="padding:8px 12px;text-align:right;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap">' + t('eqColSetup') + '</th>' +
       '<th style="padding:8px 12px;text-align:right;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap">' + t('lotDrawerDuration') + '</th>' +
       '<th style="padding:8px 12px;text-align:left;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border)">' + t('lotDrawerStatus') + '</th>' +
     '</tr>';
@@ -2345,6 +2473,7 @@ function openLotDrawer(lotId) {
         '<td '+td+'>'+esc(task['Station']||'')+'</td>' +
         '<td '+tdr+'>'+fmtDt(task._start)+'</td>' +
         '<td '+tdr+'>'+fmtDt(task._end)+'</td>' +
+        '<td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:.8rem;text-align:right;color:var(--muted)">'+((task._setupHrs||0)>0?fmtN(task._setupHrs,2)+'h':'–')+'</td>' +
         '<td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:.8rem;text-align:right;font-weight:600;color:'+(durH>4?'var(--red)':durH>1?'var(--amber)':'var(--text)')+'">'+durStr+'</td>' +
         '<td '+td+'>'+statusBadge+'</td>' +
       '</tr>'

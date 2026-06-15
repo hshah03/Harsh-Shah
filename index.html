@@ -224,7 +224,7 @@ tbody td.wrap{white-space:normal;max-width:280px}
     <button class="tab-btn" onclick="goTab('backlog',this)" data-i="tab2">⚙️ Process Backlog</button>
     <button class="tab-btn" onclick="goTab('equipment',this)">🏭 Equipment OEE</button>
     <button class="tab-btn" onclick="goTab('target',this)" data-i="tab4">🎯 Target vs Scheduled</button>
-    <button class="tab-btn" onclick="goTab('scenario',this)">🔬 Scenario Planner</button>
+    <button class="tab-btn" onclick="goTab('scenario',this)" data-i="scTitle">Priority Tags</button>
   </nav>
 
   <!-- PANE 1: OVERVIEW -->
@@ -372,106 +372,63 @@ tbody td.wrap{white-space:normal;max-width:280px}
   <div class="pane hidden" id="pane-scenario">
     <div class="page">
 
-      <div style="display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start">
+      <div style="display:grid;grid-template-columns:2.2fr 1fr;gap:18px;align-items:start">
 
-        <!-- LEFT PANEL: Order selector + scenario list -->
-        <div>
-          <!-- Search to add orders -->
-          <div class="tbl-wrap" style="margin-bottom:14px">
-            <div style="padding:12px 14px;border-bottom:1px solid var(--border)">
-              <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px" data-i="scAddOrders">Add Orders to Scenario</div>
-              <input class="inp" id="sc-search" placeholder="Search part number…" oninput="scFilterOrders()" style="width:100%">
-            </div>
-            <div id="sc-order-list" style="max-height:260px;overflow-y:auto;font-size:.82rem"></div>
+        <!-- LEFT PANEL: All orders, select only -->
+        <div class="tbl-wrap" style="min-width:0">
+          <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)" data-i="ptSearchTitle">Orders</div>
+            <input class="inp" id="sc-search" placeholder="Search part number…" oninput="scFilterOrders()" style="flex:1;min-width:160px">
+            <span class="row-count" id="sc-order-cnt">—</span>
           </div>
-
-          <!-- Scenario orders -->
-          <div class="tbl-wrap">
-            <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-              <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)"><span data-i="scSelected">Scenario Orders</span> <span id="sc-count" style="color:var(--blue)">0</span></div>
-              <button onclick="scClearAll()" style="font-size:.72rem;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline" data-i="scClearAll">Clear all</button>
-            </div>
-            <div id="sc-selected-list" style="max-height:320px;overflow-y:auto;font-size:.82rem">
-              <div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem" id="sc-no-orders-yet">No orders added yet.<br>Search and click an order above.</div>
-            </div>
+          <div class="tbl-scr" style="max-height:760px">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:36px" data-i="ptSelectCol">Select</th>
+                  <th data-i="colPN">PN</th>
+                  <th class="num" data-i="colExFactory">EXF (CDD - 2 days)</th>
+                  <th class="num" data-i="ptEstCompletion">Est. Completion</th>
+                  <th class="num" data-i="ptLateBy">Late by</th>
+                </tr>
+              </thead>
+              <tbody id="sc-order-list"></tbody>
+            </table>
           </div>
         </div>
 
-        <!-- RIGHT PANEL: Simulation controls + results -->
-        <div>
-          <!-- Controls -->
-          <div class="toolbar" style="margin-bottom:14px;flex-wrap:wrap;gap:12px">
-            <div>
-              <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px" data-i="scSimDate">Sim Start Date</div>
-              <input type="date" class="inp" id="sc-date" style="min-width:150px">
+        <!-- RIGHT PANEL: Action selection + send -->
+        <div style="min-width:0">
+
+          <!-- Action selection / review -->
+          <div class="tbl-wrap" style="margin-bottom:14px">
+            <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+              <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)"><span data-i="ptSelectedActions">Action</span> <span id="sc-count" style="color:var(--blue)">0</span></div>
+              <button onclick="scClearAll()" style="font-size:.72rem;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline" data-i="scClearAll">Clear all</button>
             </div>
-            <div style="margin-left:auto;display:flex;gap:8px;align-items:flex-end">
-              <button onclick="scReset()" style="padding:7px 14px;border-radius:6px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:.82rem;cursor:pointer" data-i="scReset">↺ Reset</button>
-              <button onclick="runScenario()" style="padding:7px 18px;border-radius:6px;border:none;background:var(--blue);color:#fff;font-weight:700;font-size:.82rem;cursor:pointer" data-i="scRun">▶ Run Simulation</button>
+            <div id="sc-selected-list" style="max-height:320px;overflow-y:auto;font-size:.82rem">
+              <div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem" id="sc-no-orders-yet">No orders selected yet.<br>Select an order on the left.</div>
+            </div>
+            <div id="sc-send-wrap" style="display:none;padding:12px 14px;border-top:1px solid var(--border)">
+              <button onclick="ptSendToPailot()" style="width:100%;padding:9px 16px;border-radius:6px;border:none;background:var(--green);color:#fff;font-weight:700;font-size:.85rem;cursor:pointer" data-i="ptSendToPailot">Send to Pailot</button>
             </div>
           </div>
 
-          <!-- Stat cards -->
-          <div class="stat-row" id="sc-stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px"></div>
-
-          <!-- Legend -->
-          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;font-size:.76rem;color:var(--muted)">
-            <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--green);margin-right:3px"></span><span data-i="scLegendOnTime">On time</span></span>
-            <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--amber);margin-right:3px"></span><span data-i="scLegendAtRisk">At risk (&#x2264;3 days)</span></span>
-            <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--red);margin-right:3px"></span><span data-i="scLegendMiss">Will miss deadline</span></span>
-          </div>
-
-          <!-- Results table -->
-          <div class="tbl-wrap" id="sc-results-wrap" style="display:none">
-            <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
-              <span style="font-size:.78rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.05em">📋 Scenario Orders</span>
-              <button onclick="scExport()" style="margin-left:auto;padding:5px 12px;border-radius:5px;border:1.5px solid var(--border);background:#fff;font-size:.75rem;cursor:pointer">⬇ Export</button>
-            </div>
-            <div class="tbl-scr">
-              <table>
-                <thead>
-                  <tr>
-                    <th>${t("colPN")}</th>
-                    <th>Change</th>
-                    <th class="num">Ex-Factory / Deadline</th>
-                    <th class="num">Baseline End</th>
-                    <th class="num">Sim. End</th>
-                    <th class="num">Shift</th>
-                    <th class="num">Buffer</th>
-                    <th>Outcome</th>
-                  </tr>
-                </thead>
-                <tbody id="sc-results-body"></tbody>
-              </table>
+          <!-- Confirmation note after sending -->
+          <div class="tbl-wrap" id="sc-sent-confirmation" style="display:none;margin-bottom:14px;background:#f0fdf4;border:1px solid #bbf7d0">
+            <div style="padding:14px 18px;font-size:.82rem;color:var(--text);line-height:1.6">
+              <strong style="color:var(--green)" data-i="ptSentTitle">Sent to Pailot</strong>
+              <div id="sc-sent-detail" style="margin-top:6px"></div>
+              <ul id="sc-sent-list" style="margin:8px 0 0 20px;padding:0"></ul>
+              <div style="margin-top:8px" data-i="ptSentNote">Pailot will replan (~20 mins). When the new schedule export is ready, upload it here using "Upload New File" — this page will automatically show what changed and flag any consequences below.</div>
+              <div style="margin-top:8px">
+                <button onclick="ptResetBaseline()" style="background:none;border:none;color:var(--blue);text-decoration:underline;cursor:pointer;font-size:.8rem;padding:0" data-i="ptStartNew">start a new round of actions</button>
+              </div>
             </div>
           </div>
 
-          <!-- Consequences section -->
-          <div class="tbl-wrap" id="sc-consequences-wrap" style="display:none;margin-top:14px">
-            <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:#fff3e0">
-              <span id="sc-consequences-title" style="font-size:.78rem;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.05em">⚠ Consequences</span>
-            </div>
-            <div class="tbl-scr">
-              <table>
-                <thead>
-                  <tr>
-                    <th>${t("colPN")}</th>
-                    <th>Reason</th>
-                    <th class="num">Ex-Factory</th>
-                    <th class="num">Baseline End</th>
-                    <th class="num">Sim. End</th>
-                    <th class="num">Pushed by</th>
-                    <th class="num">Buffer</th>
-                    <th>Outcome</th>
-                  </tr>
-                </thead>
-                <tbody id="sc-consequences-body"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <div id="sc-no-results" style="padding:40px;text-align:center;color:var(--muted);font-size:.88rem">
-            Add orders on the left, configure changes, then click <strong>Run Simulation</strong>.
+          <div id="sc-no-results" style="padding:40px;text-align:center;color:var(--muted);font-size:.88rem" data-i="ptNoResults">
+            Choose an action for orders on the left, then send to Pailot.
           </div>
         </div>
       </div>
@@ -736,7 +693,7 @@ const TRANS = {
     lotId:'Lot ID', currentStep:'Current Step', estEnd:'Est. Completion Date', lotStatus:'Status',
     badgeOverdue:'Late', badgeOk:'✓ On Track', badgeLate:'Late', badgeGood:'On Track',
     allUrgent:'ALL URGENT', urgent:'Urgent', urgentOrders:'🚨 Urgent',
-    uniqueParts:'unique part numbers', ofTotal:'of total',
+    uniqueParts:'unique part numbers', ofTotal:'of total', ordersLabel:'orders',
     tab4:'🎯 Target vs Scheduled',
     tgDate:'Date', tgProcess:'Process', tgDailyTarget:'Daily Target (sqft)',
     tgScheduled:'Scheduled Area (sqft)', tgDiff:'Difference (sqft)', tgVsPct:'vs Target %', tgStatus:'Status',
@@ -744,17 +701,24 @@ const TRANS = {
     tgOnTarget:'✓ On Target', tgNearTarget:'✓ Near Target', tgBelow:'⚠ Below Target', tgFarBelow:'✗ Far Below', tgNoData:'No Data',
     tgBreakdown:'Daily Breakdown — Scheduled vs Target',
     tgNum:'Number', tgPct:'%',
-    scTitle:'Scenario Planner', scAddOrders:'Add Orders to Scenario',
-    scSelected:'Scenario Orders', scSimDate:'Sim Start Date',
-    scReset:'Reset', scRun:'▶ Run Simulation',
-    scUrgent:'🚨 Urgent — ASAP', scMustBy:'📅 Must complete by',
-    scOnTime:'Scenario On Time', scAtRisk:'Scenario At Risk',
-    scWillMiss:'Scenario Will Miss', scNewlyLate:'Newly Late (Consequence)',
-    scPN:'PN', scChange:'Change', scDeadline:'EXF (CDD - 2 days)',
-    scBaseline:'Baseline End', scSimEnd:'Sim. End', scShift:'Shift', scBuffer:'Buffer', scOutcome:'Outcome',
-    scConsequences:'Consequences', scImpacted:'Pushed out',
-    scNoPNs:'No orders added yet. Search and click an order above.',
-    scNoResults:'Add orders on the left, configure changes, then click Run Simulation.',
+    scTitle:'Action',
+    ptSearchTitle:'Orders', ptTagged:'Selected Actions', ptSelectedActions:'Selected Actions',
+    ptEstCompletion:'Est. Completion', ptLateBy:'Late by', ptSelectCol:'Select',
+    ptOnTimeShort:'On time',
+    ptInstructionsTitle:'Instruction List for Pailot', ptCopy:'⧉ Copy', ptCopied:'Copied',
+    ptMarkSent:'Mark as Sent — Save Baseline',
+    ptBaselineSaved:'Baseline saved',
+    ptSendToPailot:'Send to Pailot',
+    ptSentTitle:'Sent to Pailot',
+    ptSentNote:'Pailot will replan (~20 mins). When the new schedule export is ready, upload it here using "Upload New File" — this page will automatically show what changed for these orders.',
+    ptStartNew:'start a new round of actions',
+    ptNoResults:'Select orders on the left, choose an action, then send to Pailot.',
+    ptTagASAP:'High Priority', ptTagASAPEff:'High Priority (Efficient)', ptTagEXF:'Must meet EXF', ptTagCustom:'Must meet custom date',
+    ptTagASAPDesc:'Create as fast as possible',
+    ptTagASAPEffDesc:'Fast, but avoid unnecessary changeovers — start when a suitable machine is free',
+    ptTagEXFDesc:'Complete by existing EXF date',
+    ptTagCustomDesc:'Complete by a specific date',
+    ptSetCustomDate:'Set date', ptAddTag:'Choose action',
     eqTitle:'Equipment OEE', eqAvgOEE:'Avg Station OEE', eqHighOEE:'High OEE (≥80%)',
     eqLowOEE:'Low OEE (<50%)', eqBatch:'Batch Opportunities', eqStations:'stations',
     eqProcesses:'processes', eqProcOEE:'Process OEE',
@@ -765,8 +729,7 @@ const TRANS = {
     eqBatchDesc:'Same PN runs non-consecutively — resequencing to batch together eliminates avoidable setups.',
     eqScheduled:'Scheduled', eqIdle:'Idle',
     scClearAll:'Clear all', scSearchPlaceholder:'Search part number…',
-    scNoOrdersYet:'No orders added yet. Search and click an order above.',
-    scLegendOnTime:'On time', scLegendAtRisk:'At risk (≤3 days)', scLegendMiss:'Will miss deadline',
+    scNoOrdersYet:'No orders selected yet. Select an order on the left.',
     colStation:'Station', colStepStart:'Step Start', colStepEnd:'Step End',
     colEstCompletion:'Est. Completion Date', colBacklog:'Backlog',
     colLotId:'Lot ID', colPanels:'Panels', colTotalPanels:'Total Panels',
@@ -815,7 +778,7 @@ const TRANS = {
     lotId:'批次编号', currentStep:'当前工序', estEnd:'预计完成日期', lotStatus:'状态',
     badgeOverdue:'逾期', badgeOk:'✓ 正常', badgeLate:'逾期', badgeGood:'正常',
     allUrgent:'全部紧急', urgent:'紧急', urgentOrders:'🚨 紧急订单',
-    uniqueParts:'个唯一料号', ofTotal:'占总数',
+    uniqueParts:'个唯一料号', ofTotal:'占总数', ordersLabel:'个订单',
     tab4:'🎯 目标与计划对比',
     tgDate:'日期', tgProcess:'工序', tgDailyTarget:'日目标（sqft）',
     tgScheduled:'计划面积（sqft）', tgDiff:'差异（sqft）', tgVsPct:'达成率', tgStatus:'状态',
@@ -823,17 +786,24 @@ const TRANS = {
     tgOnTarget:'✓ 达标', tgNearTarget:'✓ 接近目标', tgBelow:'⚠ 未达标', tgFarBelow:'✗ 严重不足', tgNoData:'无数据',
     tgBreakdown:'每日明细 — 计划 vs 目标',
     tgNum:'数值', tgPct:'百分比',
-    scTitle:'计划模拟器', scAddOrders:'添加订单至模拟',
-    scSelected:'模拟订单', scSimDate:'模拟开始日期',
-    scReset:'重置', scRun:'▶ 运行模拟',
-    scUrgent:'🚨 紧急 — 尽快', scMustBy:'📅 必须在此日期前完成',
-    scOnTime:'模拟准时', scAtRisk:'模拟有风险',
-    scWillMiss:'模拟将错过', scNewlyLate:'新增逾期（影响）',
-    scPN:'料号', scChange:'变更', scDeadline:'出厂日期/截止日',
-    scBaseline:'基准完成', scSimEnd:'模拟完成', scShift:'偏移', scBuffer:'缓冲', scOutcome:'结果',
-    scConsequences:'影响后果', scImpacted:'被推迟',
-    scNoPNs:'尚未添加订单，请在上方搜索并点击订单。',
-    scNoResults:'在左侧添加订单，配置变更，然后点击运行模拟。',
+    scTitle:'操作',
+    ptSearchTitle:'订单', ptTagged:'已选操作', ptSelectedActions:'已选操作',
+    ptEstCompletion:'预计完成', ptLateBy:'逾期天数', ptSelectCol:'选择',
+    ptOnTimeShort:'按时',
+    ptInstructionsTitle:'给Pailot的指示清单', ptCopy:'⧉ 复制', ptCopied:'已复制',
+    ptMarkSent:'标记为已发送 — 保存基准',
+    ptBaselineSaved:'基准已保存',
+    ptSendToPailot:'发送给Pailot',
+    ptSentTitle:'已发送给Pailot',
+    ptSentNote:'Pailot将重新排产（约20分钟）。新的排程导出文件准备好后，请使用「上传新文件」上传 — 此页面将自动显示这些订单的变化。',
+    ptStartNew:'开始新一轮操作',
+    ptNoResults:'在左侧选择订单，选择操作，然后发送给Pailot。',
+    ptTagASAP:'高优先级', ptTagASAPEff:'高优先级（高效）', ptTagEXF:'须满足EXF日期', ptTagCustom:'须满足指定日期',
+    ptTagASAPDesc:'尽可能快地完成生产',
+    ptTagASAPEffDesc:'尽快完成，但避免不必要的换型 — 待合适机器空闲时开始',
+    ptTagEXFDesc:'须在现有EXF日期前完成',
+    ptTagCustomDesc:'须在指定日期前完成',
+    ptSetCustomDate:'设置日期', ptAddTag:'选择操作',
     eqTitle:'设备OEE', eqAvgOEE:'平均站点OEE', eqHighOEE:'高OEE (≥80%)',
     eqLowOEE:'低OEE (<50%)', eqBatch:'合批机会', eqStations:'站点',
     eqProcesses:'工序', eqProcOEE:'工序OEE',
@@ -844,8 +814,7 @@ const TRANS = {
     eqBatchDesc:'同一料号非连续排产 — 重新排序可消除不必要的换型设置。',
     eqScheduled:'生产中', eqIdle:'空闲',
     scClearAll:'清除全部', scSearchPlaceholder:'搜索料号…',
-    scNoOrdersYet:'尚未添加订单，请在上方搜索并点击订单。',
-    scLegendOnTime:'准时', scLegendAtRisk:'有风险（≤3天）', scLegendMiss:'将错过截止日',
+    scNoOrdersYet:'尚未选择订单，请在左侧选择订单。',
     colStation:'站点', colStepStart:'工序开始', colStepEnd:'工序结束',
     colEstCompletion:'预计完成日期', colBacklog:'积压',
     colLotId:'批次编号', colPanels:'面板数', colTotalPanels:'总面板数',
@@ -1197,7 +1166,12 @@ function buildOrders() {
 //  TABS
 // ═══════════════════════════════════════════════════════
 const TABS = ['overview','backlog','equipment','target','scenario'];
+let CURRENT_TAB = 'overview';
 function goTab(name, btn) {
+  if (CURRENT_TAB === 'scenario' && name !== 'scenario') {
+    ptResetAll();
+  }
+  CURRENT_TAB = name;
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',TABS[i]===name));
   document.querySelectorAll('.pane').forEach(p=>{p.classList.add('hidden');p.classList.remove('active');});
   const pane = document.getElementById('pane-'+name);
@@ -1750,330 +1724,305 @@ function tgToggle(mode) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  SCENARIO PLANNER
+//  PRIORITY TAGS
 // ═══════════════════════════════════════════════════════
+// PT.tags: Map<orderKey, {pn, type, customDate}>  where orderKey = partNumber|||EXFdate
+//   type: 'asap' | 'asap_eff' | 'exf' | 'custom'
+// PT.allOrders: list of orders for search
+// PT.baseline: null | { savedAt: ISOstring, tags: [...], snapshot: { [orderKey]: { maxEnd: ISOstring, exFactory: ISOstring|null } } }
+// NOTE: This state is session-only (not persisted to localStorage). Leaving the
+// Action tab for any other tab clears it via ptResetAll().
+const PT = { tags: new Map(), allOrders: [], baseline: null, justSent: false };
 
-const SC = { changes: new Map(), allOrders: [] };
+const PT_TAG_TYPES = ['asap','asap_eff','exf','custom'];
+function ptTagLabel(type) {
+  return type==='asap' ? t('ptTagASAP')
+       : type==='asap_eff' ? t('ptTagASAPEff')
+       : type==='exf' ? t('ptTagEXF')
+       : type==='custom' ? t('ptTagCustom') : '';
+}
+function ptTagDesc(type) {
+  return type==='asap' ? t('ptTagASAPDesc')
+       : type==='asap_eff' ? t('ptTagASAPEffDesc')
+       : type==='exf' ? t('ptTagEXFDesc')
+       : type==='custom' ? t('ptTagCustomDesc') : '';
+}
+
+// Order key used for baseline snapshot matching across uploads
+function ptOrderKey(o) {
+  return (o.partNumber||'') + '|||' + (o.exFactory ? ymd(o.exFactory) : 'no-date');
+}
 
 function initScenario() {
   if (!G.orders.length) return;
-  if (!document.getElementById('sc-date').value) {
-    const tgDate = document.getElementById('tg-date').value;
-    setDI('sc-date', tgDate || ymd(new Date()));
-  }
-  SC.allOrders = G.orders
+  PT.allOrders = G.orders
     .filter(o => o.exFactory)
     .sort((a,b) => {
-      // Late orders (isOverdue) first, then by ex-factory date
       if (a.isOverdue && !b.isOverdue) return -1;
       if (!a.isOverdue && b.isOverdue) return 1;
       return a.exFactory - b.exFactory;
     });
+
   scFilterOrders();
   renderSelectedList();
+
+  document.getElementById('sc-sent-confirmation').style.display = PT.justSent ? 'block' : 'none';
+  if (PT.justSent) {
+    ptRenderSentDetail();
+  }
+
+  document.getElementById('sc-no-results').style.display = (PT.tags.size || PT.justSent) ? 'none' : 'block';
 }
 
-function scReset() {
-  SC.changes.clear();
-  renderSelectedList();
-  scFilterOrders();
-  document.getElementById('sc-results-wrap').style.display='none';
-  document.getElementById('sc-no-results').style.display='block';
-  document.getElementById('sc-stats').innerHTML='';
+// ─────────────────────────────────────────────────────
+//  RESET — clears all state when leaving the Action tab
+// ─────────────────────────────────────────────────────
+function ptResetAll() {
+  PT.tags.clear();
+  PT.baseline = null;
+  PT.justSent = false;
 }
 
+// ─────────────────────────────────────────────────────
+//  LEFT PANEL: full order table with inline action picker
+// ─────────────────────────────────────────────────────
 function scFilterOrders() {
   const q = (document.getElementById('sc-search').value||'').trim().toLowerCase();
   const list = q
-    ? SC.allOrders.filter(o=>o.partNumber.toLowerCase().includes(q))
-    : SC.allOrders.slice(0, 120);
+    ? PT.allOrders.filter(o=>o.partNumber.toLowerCase().includes(q))
+    : PT.allOrders;
 
-  const el = document.getElementById('sc-order-list');
-  if (!list.length) { el.innerHTML='<div style="padding:14px;color:var(--muted);font-size:.8rem;text-align:center">No matches</div>'; return; }
+  const tbody = document.getElementById('sc-order-list');
+  const cntEl = document.getElementById('sc-order-cnt');
+  if (cntEl) cntEl.textContent = list.length + ' ' + t('ordersLabel');
 
-  // Split into late and on-track
-  const late    = list.filter(o => o.isOverdue);
-  const ontrack = list.filter(o => !o.isOverdue);
-
-  function renderRow(o) {
-    const added = SC.changes.has(o.partNumber);
-    const lateBadge = o.isOverdue ? '<span style="background:#ffebee;color:var(--red);font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:10px;margin-right:4px">LATE</span>' : '';
-    return `<div class="sc-order-row ${added?'added':''}" data-pn="${esc(o.partNumber)}" onclick="scOrderRowClick(this)">
-      <span style="flex:1;font-weight:${added?'600':'400'}">${lateBadge}${esc(o.partNumber)}</span>
-      <span style="font-size:.72rem;color:var(--muted)">${fmtS(o.exFactory)}</span>
-      ${added ? '<span style="color:var(--green);font-size:.72rem;font-weight:700">✓ Added</span>' : '<span style="color:var(--blue);font-size:.72rem">+ Add</span>'}
-    </div>`;
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="note">${t('lblNoMatches')}</td></tr>`;
+    return;
   }
 
-  let html = '';
-  if (late.length) {
-    html += `<div style="padding:6px 14px 4px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--red);background:#ffebee;border-bottom:1px solid #ffcdd2">⚠ Already Late (${late.length})</div>`;
-    html += late.map(renderRow).join('');
-  }
-  if (ontrack.length) {
-    if (late.length) html += `<div style="padding:6px 14px 4px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:#f8fafc;border-bottom:1px solid var(--border)">On Track (${ontrack.length})</div>`;
-    html += ontrack.map(renderRow).join('');
-  }
-  el.innerHTML = html;
+  const rows = list.slice(0, 300).map(o => {
+    const key = ptOrderKey(o);
+    const c = PT.tags.get(key);
+    const checked = !!c;
+    const lateDays = (o.maxEnd && o.exFactory) ? Math.round((o.maxEnd - o.exFactory) / 86400000) : null;
+    const lateCell = lateDays===null ? '–'
+      : lateDays > 0 ? `<span style="color:var(--red);font-weight:700">+${lateDays}d</span>`
+      : `<span style="color:var(--green);font-weight:600">${t('ptOnTimeShort')}</span>`;
+
+    const checkboxCell = `<input type="checkbox" data-key="${esc(key)}" data-pn="${esc(o.partNumber)}" data-action="checkbox" ${checked?'checked':''} style="width:16px;height:16px;cursor:pointer">`;
+
+    return `<tr ${checked?'style="background:#f0fdf4"':''}>
+      <td>${checkboxCell}</td>
+      <td style="font-weight:700">${esc(o.partNumber)}</td>
+      <td class="num">${fmtS(o.exFactory)}</td>
+      <td class="num">${fmtDt(o.maxEnd)}</td>
+      <td class="num">${lateCell}</td>
+    </tr>`;
+  }).join('');
+
+  const moreRow = list.length > 300 ? `<tr><td colspan="5" class="note">… and ${list.length-300} more — refine your search</td></tr>` : '';
+  tbody.innerHTML = rows + moreRow;
+
+  tbody.querySelectorAll('[data-action]').forEach(el => {
+    const key = el.dataset.key;
+    const action = el.dataset.action;
+    if (action==='checkbox')   el.addEventListener('change', e=>{ ptSetSelected(key, e.target.checked, el.dataset.pn); });
+  });
 }
 
-function scOrderRowClick(el) {
-  const pn = el.dataset.pn;
-  if (!SC.changes.has(pn)) scAddOrder(pn);
-}
-
-function scAddOrder(pn) {
-  if (!SC.changes.has(pn)) SC.changes.set(pn, { type: null, deadline: null });
+function ptSetSelected(key, checked, pn) {
+  if (checked) {
+    if (!PT.tags.has(key)) PT.tags.set(key, { pn, type: null, customDate: null });
+  } else {
+    PT.tags.delete(key);
+  }
   renderSelectedList();
   scFilterOrders();
 }
 
-function scRemoveOrder(pn) {
-  SC.changes.delete(pn);
+function ptSetTagType(key, type, pn) {
+  const existing = PT.tags.get(key);
+  if (!existing) return; // shouldn't happen — checkbox must be checked first
+  existing.type = type || null;
+  existing.pn = pn || existing.pn;
+  if (existing.type !== 'custom') existing.customDate = null;
+  renderSelectedList();
+  scFilterOrders();
+}
+
+function ptSetCustomDate(key, val) {
+  const c = PT.tags.get(key);
+  if (!c) return;
+  c.customDate = val ? new Date(val+'T00:00:00') : null;
+  renderSelectedList();
+  scFilterOrders();
+}
+
+function scRemoveOrder(key) {
+  PT.tags.delete(key);
   renderSelectedList();
   scFilterOrders();
 }
 
 function scClearAll() {
-  SC.changes.clear();
+  PT.tags.clear();
   renderSelectedList();
   scFilterOrders();
 }
 
-function scSetType(pn, type) {
-  const c = SC.changes.get(pn);
-  if (!c) return;
-  c.type = c.type === type ? null : type;
-  if (c.type !== 'date') c.deadline = null;
-  renderSelectedList();
-}
-
-function scSetDeadline(pn, val) {
-  const c = SC.changes.get(pn);
-  if (!c) return;
-  c.deadline = val ? new Date(val+'T00:00:00') : null;
-}
-
+// ─────────────────────────────────────────────────────
+//  RIGHT PANEL: Selected Actions review list
+// ─────────────────────────────────────────────────────
 function renderSelectedList() {
   const scCount = document.getElementById('sc-count');
   if (!scCount) return;
-  scCount.textContent = SC.changes.size;
+  scCount.textContent = PT.tags.size;
   const el = document.getElementById('sc-selected-list');
-  if (!SC.changes.size) {
-    el.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem" id="sc-no-orders-yet">No orders added yet.<br>Search and click an order above.</div>';
+  const sendWrap = document.getElementById('sc-send-wrap');
+
+  if (!PT.tags.size) {
+    el.innerHTML=`<div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem" id="sc-no-orders-yet">${t('scNoOrdersYet')}</div>`;
+    sendWrap.style.display = 'none';
     return;
   }
+
   let html = '';
   let idx = 0;
-  for (const [pn, c] of SC.changes) {
-    const order = SC.allOrders.find(o=>o.partNumber===pn);
+  let readyCount = 0;
+  for (const [key, c] of PT.tags) {
+    const order = PT.allOrders.find(o=>ptOrderKey(o)===key);
+    const pn = c.pn || (order ? order.partNumber : key);
     const exFac = order ? fmtS(order.exFactory) : '–';
-    html += `<div class="sc-selected-row" data-scidx="${idx}">
+    const ready = c.type && (c.type!=='custom' || c.customDate);
+    if (ready) readyCount++;
+    html += `<div class="sc-selected-row" data-scidx="${idx}" data-key="${esc(key)}">
       <div style="display:flex;align-items:center">
         <span class="pn">${esc(pn)}</span>
-        <span style="font-size:.72rem;color:var(--muted);margin-left:8px">Ex-factory: ${exFac}</span>
-        <button class="sc-remove" data-scidx="${idx}" data-action="remove" title="Remove">✕</button>
+        <span style="font-size:.72rem;color:var(--muted);margin-left:8px">EXF: ${exFac}</span>
+        <button class="sc-remove" data-scidx="${idx}" data-action="remove" title="Remove">&times;</button>
       </div>
-      <div class="sc-change-row">
-        <button class="sc-chip ${c.type==='urgent'?'active-urgent':''}" data-scidx="${idx}" data-action="urgent">🚨 Urgent — ASAP</button>
-        <button class="sc-chip ${c.type==='date'?'active-date':''}" data-scidx="${idx}" data-action="date">📅 Must complete by</button>
-        ${c.type==='date' ? `<input type="date" class="sc-date-inp" data-scidx="${idx}" data-action="deadline" value="${c.deadline?ymd(c.deadline):''}">` : ''}
+      <div style="margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <select class="inp" data-scidx="${idx}" data-action="select" style="font-size:.78rem;padding:5px 8px;flex:1;min-width:140px;max-width:100%">
+          <option value="">${t('ptAddTag')}</option>
+          ${PT_TAG_TYPES.map(type => `<option value="${type}" ${c.type===type?'selected':''}>${ptTagLabel(type)}</option>`).join('')}
+        </select>
+        ${c.type==='custom' ? `<input type="date" class="sc-date-inp" data-scidx="${idx}" data-action="customdate" value="${c.customDate?ymd(c.customDate):''}" style="width:120px;flex-shrink:0">` : ''}
+        ${c.type==='custom' && !c.customDate ? `<span style="font-size:.7rem;color:var(--amber)">${t('ptSetCustomDate')}</span>` : ''}
       </div>
-      ${!c.type ? '<div style="font-size:.72rem;color:var(--amber);margin-top:4px">⚠ Select a change type above</div>' : ''}
     </div>`;
     idx++;
   }
   el.innerHTML = html;
 
-  // Wire up events via delegation
   el.querySelectorAll('[data-action]').forEach(btn => {
     const i = parseInt(btn.dataset.scidx);
-    const pnKey = [...SC.changes.keys()][i];
+    const key = [...PT.tags.keys()][i];
     const action = btn.dataset.action;
-    if (action==='remove')   btn.addEventListener('click', ()=>{ scRemoveOrder(pnKey); });
-    if (action==='urgent')   btn.addEventListener('click', ()=>{ scSetType(pnKey,'urgent'); });
-    if (action==='date')     btn.addEventListener('click', ()=>{ scSetType(pnKey,'date'); });
-    if (action==='deadline') btn.addEventListener('change', e=>{ scSetDeadline(pnKey, e.target.value); });
+    if (action==='remove')     btn.addEventListener('click', ()=>{ scRemoveOrder(key); });
+    if (action==='select')     btn.addEventListener('change', e=>{ ptSetTagType(key, e.target.value); });
+    if (action==='customdate') btn.addEventListener('change', e=>{ ptSetCustomDate(key, e.target.value); });
   });
+
+  sendWrap.style.display = readyCount ? 'block' : 'none';
 }
 
-function runScenario() {
-  const dateStr = document.getElementById('sc-date').value;
-  if (!dateStr || !SC.allOrders.length) return;
-  const simStart = new Date(dateStr+'T00:00:00');
-  const CAP = PROCESS_TARGETS;
-
-  for (const [pn, c] of SC.changes) {
-    if (c.type === 'date' && !c.deadline) { alert('Please set a deadline date for: '+pn); return; }
-    if (!c.type) { alert('Please select Urgent or Must complete by for: '+pn); return; }
+// ─────────────────────────────────────────────────────
+//  SEND TO PAILOT (faked — prototype only)
+// ─────────────────────────────────────────────────────
+function ptCountByType(tagsMap) {
+  const groups = { asap: 0, asap_eff: 0, exf: 0, custom: 0 };
+  for (const [,c] of tagsMap) {
+    if (!c.type || (c.type==='custom' && !c.customDate)) continue;
+    groups[c.type]++;
   }
+  return groups;
+}
 
-  const urgentOrders=[], deadlineOrders=[], normalOrders=[];
-  for (const o of SC.allOrders) {
-    const c = SC.changes.get(o.partNumber);
-    if (c && c.type==='urgent')       urgentOrders.push({...o,_change:c});
-    else if (c && c.type==='date')    deadlineOrders.push({...o,_change:c,_effDeadline:c.deadline});
-    else                              normalOrders.push({...o,_change:null});
+function ptBuildInstructionSummary(groups) {
+  const parts = [];
+  if (groups.asap)     parts.push(groups.asap + '\u00d7 ' + t('ptTagASAP'));
+  if (groups.asap_eff) parts.push(groups.asap_eff + '\u00d7 ' + t('ptTagASAPEff'));
+  if (groups.exf)      parts.push(groups.exf + '\u00d7 ' + t('ptTagEXF'));
+  if (groups.custom)   parts.push(groups.custom + '\u00d7 ' + t('ptTagCustom'));
+  return parts.join(' \u00b7 ');
+}
+
+function ptRenderSentDetail() {
+  if (!PT.justSent || !PT.baseline) return;
+  const tagsMap = new Map(PT.baseline.tags.map(([key,c]) => [key, { pn:c.pn, type:c.type, customDate: c.customDate ? new Date(c.customDate) : null }]));
+  const groups = ptCountByType(tagsMap);
+  const total = groups.asap + groups.asap_eff + groups.exf + groups.custom;
+  const sd = document.getElementById('sc-sent-detail');
+  if (sd) sd.textContent = total + ' ' + t('ordersLabel') + ' \u2014 ' + ptBuildInstructionSummary(groups) + ' \u2014 ' + fmtDt(new Date(PT.baseline.savedAt));
+
+  const listEl = document.getElementById('sc-sent-list');
+  if (listEl) {
+    let html = '';
+    for (const [key, c] of tagsMap) {
+      const order = PT.allOrders.find(o=>ptOrderKey(o)===key);
+      const pn = c.pn || (order ? order.partNumber : key);
+      const label = ptTagLabel(c.type) + (c.type==='custom' && c.customDate ? ' (' + fmtS(c.customDate) + ')' : '');
+      html += `<li style="margin-bottom:2px"><strong>${esc(pn)}</strong> \u2014 ${esc(label)}</li>`;
+    }
+    listEl.innerHTML = html;
   }
-  urgentOrders.sort((a,b)=>a.exFactory-b.exFactory);
-  deadlineOrders.sort((a,b)=>a._effDeadline-b._effDeadline);
-  normalOrders.sort((a,b)=>a.exFactory-b.exFactory);
-  const queue = [...urgentOrders,...deadlineOrders,...normalOrders];
+}
 
-  function makeScheduler() {
-    const used = new Map();
-    return function scheduleOrder(order) {
-      const lotMap = new Map();
-      for (const t of order.tasks) {
-        const lid=t._lot||'x'; if(!lotMap.has(lid)) lotMap.set(lid,[]); lotMap.get(lid).push(t);
-      }
-      let latest = new Date(simStart);
-      for (const [,tasks] of lotMap) {
-        const steps = [...new Set(tasks.map(t=>t['process_name']).filter(Boolean))].sort((a,b)=>pcbRank(a)-pcbRank(b));
-        const area = tasks[0]?._area||0;
-        let cursor = new Date(simStart);
-        for (const step of steps) {
-          const daily = CAP[step]||0;
-          let rem = area;
-          if (!daily) { cursor=addDays(cursor,1); continue; }
-          while (rem>0) {
-            const dk=ymd(cursor);
-            if (!used.has(step)) used.set(step,new Map());
-            const sm=used.get(step); const u=sm.get(dk)||0;
-            const avail=Math.max(0,daily-u);
-            if (avail>0) { const c=Math.min(rem,avail); sm.set(dk,u+c); rem-=c; }
-            if (rem>0) cursor=addDays(cursor,1);
-          }
-          cursor=addDays(cursor,1);
-        }
-        if (cursor>latest) latest=cursor;
-      }
-      return latest;
+function ptSendToPailot() {
+  // Build lot-level estimated completion: orderKey -> {maxEnd, exFactory}
+  const snapshot = {};
+  for (const o of G.orders) {
+    const key = ptOrderKey(o);
+    snapshot[key] = {
+      maxEnd: o.maxEnd ? o.maxEnd.toISOString() : null,
+      exFactory: o.exFactory ? o.exFactory.toISOString() : null,
     };
   }
 
-  const schedBase = makeScheduler();
-  const baselineMap = new Map();
-  for (const o of SC.allOrders) baselineMap.set(o.partNumber, schedBase(o));
-
-  const schedSim = makeScheduler();
-  const scenarioMap = new Map();
-  for (const o of queue) scenarioMap.set(o.partNumber, schedSim(o));
-
-  const scenarioPNs = new Set(SC.changes.keys());
-  const results = [];
-  for (const o of queue) {
-    const baseline  = baselineMap.get(o.partNumber);
-    const simEnd    = scenarioMap.get(o.partNumber);
-    const deadline  = o._change?.type==='date' ? o._effDeadline : o.exFactory;
-    const shiftDays = Math.round((simEnd-baseline)/86400000);
-    const bufferDays= deadline ? Math.round((deadline-simEnd)/86400000) : null;
-    const isScenario= scenarioPNs.has(o.partNumber);
-    const isImpacted= !isScenario && shiftDays!==0;
-    if (!isScenario && !isImpacted) continue;
-    results.push({pn:o.partNumber,exFactory:o.exFactory,deadline,change:o._change,baseline,simEnd,shiftDays,bufferDays,isScenario,isImpacted});
+  // Only keep "ready" tags (type set, and custom date set if needed)
+  const readyTags = new Map();
+  for (const [key,c] of PT.tags) {
+    if (c.type && (c.type!=='custom' || c.customDate)) readyTags.set(key, c);
   }
+  if (!readyTags.size) return;
 
-  renderScenarioResults(results);
+  const tagsArr = [...readyTags.entries()].map(([key,c]) => [key, { pn:c.pn, type:c.type, customDate: c.customDate ? c.customDate.toISOString() : null }]);
+
+  PT.baseline = {
+    savedAt: new Date().toISOString(),
+    tags: tagsArr,
+    snapshot,
+  };
+  PT.justSent = true;
+
+  document.getElementById('sc-sent-confirmation').style.display = 'block';
+  document.getElementById('sc-no-results').style.display = 'none';
+  ptRenderSentDetail();
 }
 
-function renderScenarioResults(results) {
-  const scenarioResults = results.filter(r=>r.isScenario);
-  const impactedResults = results.filter(r=>r.isImpacted);
-
-  // Consequences = impacted orders that now miss or worsen vs baseline
-  const consequences = impactedResults.filter(r => {
-    if (r.shiftDays <= 0) return false; // not pushed out
-    // Was on time before (positive buffer based on baseline), now late or at risk
-    const baselineBuffer = r.exFactory ? Math.round((r.exFactory - r.baseline)/86400000) : null;
-    return baselineBuffer === null || r.bufferDays < baselineBuffer;
-  });
-  const newlyLate   = consequences.filter(r=>r.bufferDays!==null&&r.bufferDays<0);
-  const newlyAtRisk = consequences.filter(r=>r.bufferDays!==null&&r.bufferDays>=0&&r.bufferDays<=3);
-
-  const onTime  = scenarioResults.filter(r=>r.bufferDays!==null&&r.bufferDays>3).length;
-  const atRisk  = scenarioResults.filter(r=>r.bufferDays!==null&&r.bufferDays>=0&&r.bufferDays<=3).length;
-  const missing = scenarioResults.filter(r=>r.bufferDays!==null&&r.bufferDays<0).length;
-
-  document.getElementById('sc-stats').innerHTML=`
-    <div class="stat s-green"><div class="stat-lbl">Scenario On Time</div><div class="stat-val">${onTime}</div><div class="stat-sub">of ${scenarioResults.length} changed orders</div></div>
-    <div class="stat s-amber"><div class="stat-lbl">Scenario At Risk</div><div class="stat-val">${atRisk}</div><div class="stat-sub">≤ 3 days buffer</div></div>
-    <div class="stat s-red"><div class="stat-lbl">Scenario Will Miss</div><div class="stat-val">${missing}</div><div class="stat-sub">deadline</div></div>
-    <div class="stat s-red"><div class="stat-lbl">Newly Late (Consequence)</div><div class="stat-val">${newlyLate.length}</div><div class="stat-sub">${newlyAtRisk.length} more now at risk</div></div>`;
-
-  function renderRows(list, tbody) {
-    tbody.innerHTML='';
-    for (const r of list) {
-      let sc,sl;
-      if (r.bufferDays===null)     {sc='#90a4ae';sl='No date';}
-      else if (r.bufferDays>3)     {sc='var(--green)';sl='✓ On time';}
-      else if (r.bufferDays>=0)    {sc='var(--amber)';sl='⚠ At risk';}
-      else                          {sc='var(--red)';sl='✗ '+Math.abs(r.bufferDays)+'d late';}
-      const changeLabel=r.change?.type==='urgent'?'<span class="badge b-overdue">🚨 Urgent</span>':r.change?.type==='date'?'<span class="badge b-blue">📅 New deadline</span>':'<span class="badge b-warn">↕ Pushed out</span>';
-      const shiftColor=r.shiftDays>0?'color:var(--red)':r.shiftDays<0?'color:var(--green)':'color:var(--muted)';
-      const shiftStr=r.shiftDays===0?'—':(r.shiftDays>0?'+':'')+r.shiftDays+'d';
-      tbody.insertAdjacentHTML('beforeend',`<tr class="${r.isScenario?'sc-scenario-row':'sc-impacted-row'}">
-        <td style="font-weight:700">${esc(r.pn)}</td>
-        <td>${changeLabel}</td>
-        <td class="num">${fmtS(r.deadline)}</td>
-        <td class="num" style="color:var(--muted)">${fmtS(r.baseline)}</td>
-        <td class="num" style="font-weight:600">${fmtS(r.simEnd)}</td>
-        <td class="num" style="${shiftColor};font-weight:700">${shiftStr}</td>
-        <td class="num" style="color:${sc};font-weight:700">${r.bufferDays!==null?(r.bufferDays>=0?'+':'')+r.bufferDays+'d':'–'}</td>
-        <td><span class="badge" style="background:${sc}22;color:${sc};border:1px solid ${sc}55">${sl}</span></td>
-      </tr>`);
-    }
-  }
-
-  // Scenario orders table
-  const scenTbody = document.getElementById('sc-results-body');
-  renderRows(scenarioResults, scenTbody);
-
-  // Consequences section
-  const consWrap = document.getElementById('sc-consequences-wrap');
-  const consTbody = document.getElementById('sc-consequences-body');
-  const consTitle = document.getElementById('sc-consequences-title');
-  if (consequences.length) {
-    consTitle.textContent = `Consequences — ${consequences.length} order${consequences.length!==1?'s':''} delayed by this scenario (${newlyLate.length} now late, ${newlyAtRisk.length} now at risk)`;
-    renderRows(consequences, consTbody);
-    consWrap.style.display='block';
-  } else {
-    consWrap.style.display='none';
-  }
-
-  document.getElementById('sc-results-wrap').style.display='block';
-  document.getElementById('sc-no-results').style.display='none';
-}
-
-function scExport() {
-  const rows=[['PN','Change','EXF (CDD - 2 days)','Baseline End','Sim End','Shift (days)','Buffer (days)','Status']];
-  document.querySelectorAll('#sc-results-body tr').forEach(tr=>{
-    const cells=[...tr.querySelectorAll('td')].map(td=>td.textContent.trim());
-    if(cells.length) rows.push([cells[1],cells[2],cells[3],cells[4],cells[5],cells[6],cells[7],cells[8]]);
-  });
-  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
-  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download='scenario_'+ymd(new Date())+'.csv'; a.click();
+function ptResetBaseline() {
+  PT.baseline = null;
+  PT.justSent = false;
+  PT.tags.clear();
+  renderSelectedList();
+  scFilterOrders();
+  document.getElementById('sc-sent-confirmation').style.display = 'none';
+  document.getElementById('sc-no-results').style.display = 'block';
 }
 
 function renderScenarioLang() {
   renderSelectedList();
-  // Update search placeholder
+  scFilterOrders();
   const srch = document.getElementById('sc-search');
-  if (srch) srch.placeholder = t('scSearchPlaceholder') || 'Search part number…';
-  // Update results table headers if visible
-  const wrap = document.getElementById('sc-results-wrap');
-  if (wrap && wrap.style.display !== 'none') {
-    const headers = wrap.querySelectorAll('thead th');
-    const keys = ['scPN','scChange','scDeadline','scBaseline','scSimEnd','scShift','scBuffer','scOutcome'];
-    headers.forEach((th,i) => { if(keys[i]) th.textContent = t(keys[i]); });
-  }
-  // Update no-results placeholder
+  if (srch) srch.placeholder = t('scSearchPlaceholder');
   const nr = document.getElementById('sc-no-results');
-  if (nr) nr.innerHTML = t('scNoResults') || 'Add orders on the left, configure changes, then click <strong>Run Simulation</strong>.';
-  // Update no-orders-yet placeholder
+  if (nr) nr.textContent = t('ptNoResults');
   const no = document.getElementById('sc-no-orders-yet');
-  if (no) no.innerHTML = t('scNoOrdersYet') || 'No orders added yet.<br>Search and click an order above.';
+  if (no) no.textContent = t('scNoOrdersYet');
+  if (PT.justSent) {
+    ptRenderSentDetail();
+  }
 }
 
 // ═══════════════════════════════════════════════════════

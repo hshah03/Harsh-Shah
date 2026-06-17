@@ -105,6 +105,10 @@ thead th.sortable:hover{background:#f0f4f9}
 thead th.sortable::after{content:' ⇅';opacity:.4;font-size:.75em}
 thead th.sortable.asc::after{content:' ↑';opacity:1;color:var(--blue)}
 thead th.sortable.dsc::after{content:' ↓';opacity:1;color:var(--blue)}
+/* Lets specific headers wrap onto 2 lines instead of forcing the column wide
+   enough for the whole label on one line — used to keep the Overview table
+   compact. The sort-arrow ::after content still sits inline at the wrap point. */
+thead th.hdr-wrap{white-space:normal;max-width:78px;line-height:1.25}
 tbody tr{border-bottom:1px solid #f0f4f8;transition:background .1s}
 tbody tr:hover{background:#f6f9ff}
 tbody td{padding:9px 13px;color:var(--text);white-space:nowrap;vertical-align:middle}
@@ -178,9 +182,14 @@ tbody td.wrap{white-space:normal;max-width:280px}
       <li data-i="feat2">Process Backlog — workload per step, filtered by date range</li>
       <li data-i="feat3">Production Area — expected area output by process &amp; day</li>
     </ul>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      <button onclick="document.getElementById('custFileIn').click()" data-i="uploadCust" style="background:none;border:none;color:var(--blue);font-size:.82rem;font-weight:600;cursor:pointer;padding:0">Upload Customer Data</button>
+      <div class="cust-map-status" style="font-size:.74rem;color:var(--muted);margin-top:4px"></div>
+    </div>
   </div>
 </div>
 <input type="file" id="fileIn" accept=".xlsx,.csv" style="display:none">
+<input type="file" id="custFileIn" accept=".xlsx,.csv" style="display:none">
 
 <div id="app">
   <header class="hdr">
@@ -215,6 +224,8 @@ tbody td.wrap{white-space:normal;max-width:280px}
           </div>
         </div>
       </div>
+      <span class="hdr-meta cust-map-status"></span>
+      <button class="btn-ghost" onclick="document.getElementById('custFileIn').click()" data-i="uploadCust">Upload Customer Data</button>
       <button class="btn-ghost" onclick="document.getElementById('fileIn').click()" data-i="uploadNew">Upload New File</button>
     </div>
   </header>
@@ -253,15 +264,16 @@ tbody td.wrap{white-space:normal;max-width:280px}
             <thead>
               <tr id="ov-head-row">
                 <th style="width:32px"></th>
+                <th class="sortable cust-col" data-k="customerName" data-i="colCustomer">Customer Name</th>
+                <th class="sortable cust-col" data-k="orderNumber" data-i="colOrderNumber">Order Number</th>
                 <th class="sortable" data-k="partNumber" data-i="colPN">PN</th>
-                <th class="sortable" data-k="orderType" data-i="colOrderType">Order Type</th>
+                <th class="sortable hdr-wrap" data-k="orderType" data-i="colOrderType">Order Type</th>
                 <th class="sortable num" data-k="lotCount" data-i="colLots">Lots</th>
-                <th class="sortable num" data-k="stepCount" data-i="colSteps">Steps</th>
-                <th class="sortable num" data-k="totalQty" data-i="colTotalPanels">Total Panels</th>
-                <th class="sortable num" data-k="totalArea" data-i="colAreaOv">Area (sqft)</th>
-                <th class="sortable num" data-k="overdueCount" data-i="colOverdue">Overdue Tasks</th>
-                <th class="sortable num" data-k="maxEnd" data-i="colEstEnd">Est. End Date</th>
+                <th class="sortable num hdr-wrap" data-k="totalQty" data-i="colTotalPanels">Total Panels</th>
+                <th class="sortable num hdr-wrap" data-k="totalArea" data-i="colAreaOv">Area (sqft)</th>
+                <th class="sortable num hdr-wrap" data-k="maxEnd" data-i="colEstEnd">Est. End Date</th>
                 <th class="sortable num" data-k="exFactory" data-i="colExFactory">Ex-Factory Date</th>
+                <th class="sortable num" data-k="lateDays" data-i="colDaysLate">Days Late</th>
                 <th data-i="colStatus">Status</th>
               </tr>
             </thead>
@@ -386,6 +398,7 @@ tbody td.wrap{white-space:normal;max-width:280px}
               <thead>
                 <tr>
                   <th style="width:36px" data-i="ptSelectCol">Select</th>
+                  <th class="cust-col" data-i="colCustomer">Customer Name</th>
                   <th data-i="colPN">PN</th>
                   <th class="num" data-i="colExFactory">EXF (CDD - 2 days)</th>
                   <th class="num" data-i="ptEstCompletion">Est. Completion</th>
@@ -667,7 +680,8 @@ function calcArea(lotAreaM2, panelSizeMm2, qty) {
 // ═══════════════════════════════════════════════════════
 const TRANS = {
   en: {
-    appTitle:'Production Plan Dashboard', uploadNew:'Upload New File',
+    appTitle:'Production Plan Dashboard', uploadNew:'Upload New File', uploadCust:'Upload Customer Data',
+    custLotsMatched:'lots matched', custRowsLoaded:'rows loaded — will apply once a schedule file is uploaded',
     tab1:'📋 Overview', tab2:'⚙️ Process Backlog', tab3:'📊 Production Area',
     uploadDesc:'Upload your production schedule Excel to view order status, process backlog, and area output.',
     clickUpload:'Click to upload', orDrop:'or drag & drop',
@@ -677,7 +691,8 @@ const TRANS = {
     all:'All', overdue:'Overdue', onTrack:'On Track',
     colPN:'PN', colPartNumber:'PN', colOrderType:'Order Type', colExFactory:'EXF (CDD - 2 days)',
     colLots:'Lots', colSteps:'Steps', colEstEnd:'Est. Completion Date', colAreaOv:'Area (sqft)',
-    colOverdue:'Overdue Tasks', colStatus:'Status',
+    colCustomer:'Customer Name', colOrderNumber:'Order Number', colDaysLate:'Days Late', colStatus:'Status',
+    ovSearchPlaceholderPlain:'PN…', ovSearchPlaceholderCust:'PN, customer, or order number…',
     statTotal:'Total Orders', statOverdue:'Overdue Orders',
     statOk:'On Track', statProc:'Processes Involved',
     statUrgent:'Urgent Orders', statAllUrgent:'fully urgent',
@@ -729,6 +744,7 @@ const TRANS = {
     eqBatchDesc:'Same PN runs non-consecutively — resequencing to batch together eliminates avoidable setups.',
     eqScheduled:'Scheduled', eqIdle:'Idle',
     scClearAll:'Clear all', scSearchPlaceholder:'Search part number…',
+    scSearchPlaceholderCust:'Search part number or customer…',
     scNoOrdersYet:'No orders selected yet. Select an order on the left.',
     colStation:'Station', colStepStart:'Step Start', colStepEnd:'Step End',
     colEstCompletion:'Est. Completion Date', colBacklog:'Backlog',
@@ -752,7 +768,8 @@ const TRANS = {
     lotDrawerEXF:'EXF (CDD - 2 days)', lotDrawerEstComp:'Est. Completion Date',
   },
   zh: {
-    appTitle:'生产计划看板', uploadNew:'上传新文件',
+    appTitle:'生产计划看板', uploadNew:'上传新文件', uploadCust:'上传客户数据',
+    custLotsMatched:'个批次已匹配', custRowsLoaded:'行已载入 — 上传生产计划文件后将自动匹配',
     tab1:'📋 总览', tab2:'⚙️ 工序积压', tab3:'📊 产出面积',
     uploadDesc:'上传生产计划Excel文件，查看订单状态、工序积压及每日产出面积。',
     clickUpload:'点击上传', orDrop:'或拖放文件',
@@ -762,7 +779,8 @@ const TRANS = {
     all:'全部', overdue:'逾期', onTrack:'正常',
     colPN:'料号', colPartNumber:'料号', colOrderType:'订单类型', colExFactory:'EXF (CDD - 2天)',
     colLots:'批次数', colSteps:'工序数', colEstEnd:'预计完成日期', colAreaOv:'面积（sqft）',
-    colOverdue:'逾期任务', colStatus:'状态',
+    colCustomer:'客户名称', colOrderNumber:'订单号', colDaysLate:'逾期天数', colStatus:'状态',
+    ovSearchPlaceholderPlain:'料号…', ovSearchPlaceholderCust:'料号、客户或订单号…',
     statTotal:'订单总数', statOverdue:'逾期订单',
     statOk:'正常订单', statProc:'涉及工序',
     statUrgent:'紧急订单', statAllUrgent:'全部紧急',
@@ -814,6 +832,7 @@ const TRANS = {
     eqBatchDesc:'同一料号非连续排产 — 重新排序可消除不必要的换型设置。',
     eqScheduled:'生产中', eqIdle:'空闲',
     scClearAll:'清除全部', scSearchPlaceholder:'搜索料号…',
+    scSearchPlaceholderCust:'搜索料号或客户…',
     scNoOrdersYet:'尚未选择订单，请在左侧选择订单。',
     colStation:'站点', colStepStart:'工序开始', colStepEnd:'工序结束',
     colEstCompletion:'预计完成日期', colBacklog:'积压',
@@ -878,8 +897,22 @@ let G = {
   activeStatus: 'all',
   gran: 'day',
   pnPanelSize: new Map(),
+  custMap: new Map(),   // woNumber (= Lot ID) -> { customer, soNumber }
 };
-let OV_SORT = 'exFactory', OV_ASC = true;
+let OV_SORT = 'maxEnd', OV_ASC = true;
+
+// ═══════════════════════════════════════════════════════
+//  LAZY DRAWERS — perf: the Overview/Backlog/Equipment tables each have an
+//  expandable detail row per item, but only one is ever open at a time. Building
+//  that detail HTML for every row on every render (search keystroke, sort click,
+//  filter change) wastes most of the work. Instead each render registers a
+//  zero-arg factory keyed by row id; toggleRow()/eqToggle() call it once, on
+//  first expand, and cache the result on the DOM node so re-collapsing/expanding
+//  doesn't redo it. Each table clears only the ids it owns before re-registering,
+//  so the map doesn't grow unbounded across renders.
+// ═══════════════════════════════════════════════════════
+const LAZY_DRAWERS = new Map();
+let OV_ROW_IDS = [], BL_ROW_IDS = [], EQ_ROW_IDS = [];
 
 // ═══════════════════════════════════════════════════════
 //  LOADING
@@ -890,11 +923,29 @@ function hideLoad()    { document.getElementById('loadingOverlay').classList.rem
 // ═══════════════════════════════════════════════════════
 //  DATE HELPERS
 // ═══════════════════════════════════════════════════════
+// Excel stores dates as serial day-numbers (e.g. 46190.6665 = days since 1899-12-30).
+// Our xlsx export has some date columns using a custom number format ("dd.mm.yy hh:mm:ss")
+// that the spreadsheet library fails to render as text for, so the raw serial number
+// leaks through as a plain numeric string instead of a formatted date. JS's native
+// Date constructor does NOT reliably reject those bare numeric strings: it occasionally
+// misparses them as a bogus "year.month" date instead of returning Invalid Date, which is
+// the source of garbage dates like year 46194. This converts that serial number correctly.
+function excelSerialToDate(n) {
+  const epoch = Date.UTC(1899, 11, 30);
+  const utc = new Date(epoch + Math.round(n * 86400000));
+  return new Date(utc.getUTCFullYear(), utc.getUTCMonth(), utc.getUTCDate(), utc.getUTCHours(), utc.getUTCMinutes(), utc.getUTCSeconds());
+}
 function pDate(s) {
   if (!s) return null;
   s = String(s).trim();
+  if (!s) return null;
   const m = s.match(/^(\d{1,2})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
   if (m) return new Date(2000+Number(m[3]),Number(m[2])-1,Number(m[1]),Number(m[4]),Number(m[5]),Number(m[6]));
+  // Bare Excel serial number (e.g. "46190.6665") leaked through unformatted — convert directly
+  // rather than letting it fall into the unreliable native Date(string) parser below.
+  if (/^\d+(\.\d+)?$/.test(s)) {
+    return excelSerialToDate(Number(s));
+  }
   const d = new Date(s.replace(' ','T'));
   return isNaN(d)?null:d;
 }
@@ -904,6 +955,20 @@ const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov',
 function fmtS(d) { if(!d)return'–'; return pad(d.getDate())+' '+MONTHS[d.getMonth()]+' \''+String(d.getFullYear()).slice(2); }
 function fmtDt(d){ if(!d)return'–'; return pad(d.getDate())+' '+MONTHS[d.getMonth()]+' \''+String(d.getFullYear()).slice(2)+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
 function fmtN(n,dec){ if(dec===undefined) return Math.round(n).toLocaleString('en-US'); return n.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+function lateDaysHtml(days) {
+  if (days===null||days===undefined) return '–';
+  if (days > 0)  return `<span style="color:var(--red);font-weight:700">+${days}d</span>`;
+  if (days === 0) return `<span style="color:var(--green);font-weight:600">${t('ptOnTimeShort')}</span>`;
+  const early = -days;
+  const label = LANG === 'zh' ? `提前${early}天` : `${early}d early`;
+  return `<span style="color:var(--green);font-weight:600">${label}</span>`;
+}
+// Caps long text (e.g. several SO numbers joined with " / ") so it doesn't blow out column width.
+// Full value is still available via the title tooltip on hover.
+function truncateText(str, max) {
+  if (!str) return '';
+  return str.length > max ? str.slice(0, max) + '…' : str;
+}
 function dayOf(d){ const r=new Date(d);r.setHours(0,0,0,0);return r; }
 function addDays(d,n){ const r=new Date(d);r.setDate(r.getDate()+n);return r; }
 function weekStart(d){ const r=new Date(d);r.setDate(r.getDate()-r.getDay());r.setHours(0,0,0,0);return r; }
@@ -922,6 +987,9 @@ function lotId(task) {
 // ═══════════════════════════════════════════════════════
 document.getElementById('fileIn').addEventListener('change', e => {
   const f = e.target.files[0]; if(f) loadFile(f); e.target.value='';
+});
+document.getElementById('custFileIn').addEventListener('change', e => {
+  const f = e.target.files[0]; if(f) loadCustFile(f); e.target.value='';
 });
 const dz = document.getElementById('dropZone');
 dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag-over');});
@@ -997,6 +1065,96 @@ async function loadXlsx(file) {
     showLoad(`Normalising ${raw.length.toLocaleString()} rows…`); await tick();
     await processRows(raw, file);
   } catch(e) { hideLoad(); alert('Error loading file:\n'+e.message+'\n\n'+(e.stack||'')); }
+}
+
+// ═══════════════════════════════════════════════════════
+//  CUSTOMER / ORDER NUMBER MAPPING FILE
+//  Separate upload: woNumber (= Lot ID), soNumber (Order Number), name (Customer Name).
+//  Matched onto orders via woNumber === Lot ID (the same ID shown in the Overview drawer).
+// ═══════════════════════════════════════════════════════
+function findCustCol(row, candidates) {
+  const keys = Object.keys(row);
+  for (const cand of candidates) {
+    const hit = keys.find(k => k.trim().toLowerCase() === cand.toLowerCase());
+    if (hit) return hit;
+  }
+  for (const cand of candidates) {
+    const hit = keys.find(k => k.trim().toLowerCase().includes(cand.toLowerCase()));
+    if (hit) return hit;
+  }
+  return null;
+}
+
+async function loadCustFile(file) {
+  showLoad('Reading customer mapping file…');
+  try {
+    let rows;
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      const text = await file.text();
+      await tick();
+      const lines = text.replace(/\x00/g,'').split('\n').filter(l=>l.trim());
+      const sep = lines[0].split('\t').length > lines[0].split(',').length ? '\t' : ',';
+      const headers = lines[0].split(sep).map(h=>h.trim().replace(/^"|"$/g,''));
+      rows = lines.slice(1).map(line => {
+        const vals = line.split(sep).map(v=>v.trim().replace(/^"|"$/g,''));
+        const row = {};
+        headers.forEach((h,i)=>row[h]=vals[i]||'');
+        return row;
+      });
+    } else {
+      const buf = await file.arrayBuffer();
+      await tick();
+      const wb = XLSX.read(buf,{type:'array',cellDates:false});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws,{raw:false,defval:''});
+    }
+    showLoad('Matching customer & order data…'); await tick();
+    applyCustMapping(rows);
+  } catch(e) { hideLoad(); alert('Error loading customer mapping file:\n'+e.message); }
+}
+
+function applyCustMapping(rows) {
+  if (!rows || !rows.length) { hideLoad(); alert('No rows found in that file.'); return; }
+  const woCol   = findCustCol(rows[0], ['woNumber','wo_number','wo number','loadid','load id']);
+  const soCol   = findCustCol(rows[0], ['soNumber','so_number','so number']);
+  const nameCol = findCustCol(rows[0], ['name','customer name','customername','customer']);
+  if (!woCol) { hideLoad(); alert('Could not find a "woNumber" column in that file.'); return; }
+
+  const map = new Map();
+  for (const r of rows) {
+    const wo = String(r[woCol]||'').trim();
+    if (!wo) continue;
+    map.set(wo, {
+      customer: nameCol ? String(r[nameCol]||'').trim() : '',
+      soNumber: soCol   ? String(r[soCol]||'').trim()   : '',
+    });
+  }
+  G.custMap = map;
+
+  if (G.orders && G.orders.length) {
+    buildOrders();
+    renderOverview();
+    scFilterOrders();
+    const s = G.custMatchStats || {matched:0,total:0};
+    setCustStatus(`${fmtN(s.matched)} / ${fmtN(s.total)} ${t('custLotsMatched')}`);
+  } else {
+    setCustStatus(`${fmtN(map.size)} ${t('custRowsLoaded')}`);
+  }
+  hideLoad();
+}
+
+function setCustStatus(msg) {
+  document.querySelectorAll('.cust-map-status').forEach(el => el.textContent = msg);
+}
+
+// Whether a customer/order-number mapping has been uploaded. Gates the
+// Customer Name / Order Number columns and search matching on both the
+// Overview and Action pages — both should stay invisible until there's real data.
+function hasCustData() { return !!(G.custMap && G.custMap.size > 0); }
+function updateCustColVisibility() {
+  const show = hasCustData();
+  document.querySelectorAll('.cust-col').forEach(el => { el.style.display = show ? '' : 'none'; });
+  return show;
 }
 
 async function processRows(raw, file) {
@@ -1103,6 +1261,13 @@ async function processRows(raw, file) {
     document.getElementById('hdrMeta').textContent =
       `${G.rows.length.toLocaleString()} tasks · ${G.orders.length} orders · ${procCount} processes`;
 
+    // If a customer/order-number mapping was uploaded earlier (before this schedule file),
+    // refresh its status text now that match stats actually exist.
+    if (G.custMap && G.custMap.size) {
+      const s = G.custMatchStats || {matched:0,total:0};
+      setCustStatus(`${fmtN(s.matched)} / ${fmtN(s.total)} ${t('custLotsMatched')}`);
+    }
+
     buildTypeChips();
     document.getElementById('uploadScreen').style.display='none';
     document.getElementById('app').style.display='block';
@@ -1128,15 +1293,20 @@ function buildOrders() {
     map.get(key).tasks.push(r);
   }
 
+  let custLotsTotal = 0, custLotsMatched = 0;
+
   G.orders = Array.from(map.values()).map(o => {
     const ends      = o.tasks.map(t=>t._end).filter(Boolean);
     const maxEnd    = ends.length ? new Date(Math.max(...ends)) : null;
     const lots      = new Set(o.tasks.map(t=>t._lot).filter(Boolean));
     const steps     = new Set(o.tasks.map(t=>t['process_name']).filter(Boolean));
 
-    // _late = estimated lot completion (maxEnd) is after ExFactoryDate
+    // _late = estimated lot completion (maxEnd) is after ExFactoryDate, by calendar
+    // day — not exact timestamp, so finishing later the same day as EXF still counts
+    // as on time (matches the day-level "Days Late" figure shown in the table).
     const exFac     = o.tasks[0]?._exFac || null;
-    const isLotLate = !!(maxEnd && exFac && maxEnd > exFac);
+    const lateDays  = (maxEnd && exFac) ? Math.round((maxEnd - exFac) / 86400000) : null;
+    const isLotLate = lateDays !== null && lateDays > 0;
     // Stamp _late back onto each task so filters/badges work downstream
     for (const t of o.tasks) t._late = isLotLate;
 
@@ -1145,6 +1315,21 @@ function buildOrders() {
     const lotQtyMap = new Map();
     for (const t of o.tasks) { if (t._lot && !lotQtyMap.has(t._lot)) lotQtyMap.set(t._lot, t._qty||0); }
     const totalQty = [...lotQtyMap.values()].reduce((s,v)=>s+v,0);
+
+    // Customer Name / Order Number — looked up per lot via the woNumber mapping file
+    // (woNumber there === Lot ID here), then rolled up to the order level.
+    const customers = new Set(), orderNums = new Set();
+    for (const lid of lots) {
+      custLotsTotal++;
+      const info = G.custMap.get(lid);
+      if (info) {
+        custLotsMatched++;
+        if (info.customer) customers.add(info.customer);
+        if (info.soNumber) orderNums.add(info.soNumber);
+      }
+    }
+    const customerName = customers.size  ? [...customers].join(' / ')  : '';
+    const orderNumber  = orderNums.size  ? [...orderNums].join(' / ')  : '';
 
     // Urgency: a lot is urgent if any of its tasks has State = 'Urgent'
     const lotUrgent = new Map();
@@ -1157,9 +1342,12 @@ function buildOrders() {
     const urgency = urgentLots === lots.size && lots.size > 0 ? 'all'
                   : urgentLots > 0 ? 'some' : 'none';
 
-    return { ...o, maxEnd, lotCount:lots.size, stepCount:steps.size,
-             overdueCount, isOverdue: overdueCount>0, urgency, urgentLots, totalArea, totalQty };
+    return { ...o, maxEnd, lotCount:lots.size, stepCount:steps.size, lateDays,
+             overdueCount, isOverdue: overdueCount>0, urgency, urgentLots, totalArea, totalQty,
+             customerName, orderNumber };
   });
+
+  G.custMatchStats = { matched: custLotsMatched, total: custLotsTotal };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1245,7 +1433,11 @@ function filteredOrders() {
   if(G.activeStatus==='ok')      list=list.filter(o=>!o.isOverdue);
   if(G.activeStatus==='urgent')  list=list.filter(o=>o.urgency!=='none');
   const q=(document.getElementById('ov-q').value||'').trim().toLowerCase();
-  if(q) list=list.filter(o=>o.partNumber.toLowerCase().includes(q));
+  if(q) list=list.filter(o=>
+    o.partNumber.toLowerCase().includes(q) ||
+    (o.customerName && o.customerName.toLowerCase().includes(q)) ||
+    (o.orderNumber && o.orderNumber.toLowerCase().includes(q))
+  );
   return [...list].sort((a,b)=>{
     let va=a[OV_SORT],vb=b[OV_SORT];
     if(va instanceof Date&&vb instanceof Date) return OV_ASC?va-vb:vb-va;
@@ -1266,6 +1458,13 @@ function renderOverview() {
   });
   updateSortIcons();
 
+  // Customer Name / Order Number only matter once a mapping file has been uploaded —
+  // otherwise they're two columns of pure "–", so hide them until there's real data.
+  const showCust = updateCustColVisibility();
+  const colCount = showCust ? 12 : 10;
+  const ovSearchEl = document.getElementById('ov-q');
+  if (ovSearchEl) ovSearchEl.placeholder = showCust ? t('ovSearchPlaceholderCust') : t('ovSearchPlaceholderPlain');
+
   const list = filteredOrders();
   const overdue = list.filter(o=>o.isOverdue).length;
   const ontrack = list.length-overdue;
@@ -1284,37 +1483,46 @@ function renderOverview() {
   `;
   document.getElementById('ov-cnt').textContent = list.length+' orders';
 
+  // Drop any lazy-drawer factories left over from the previous render before
+  // building the new ones, so the registry doesn't grow unbounded across renders.
+  for (const oldId of OV_ROW_IDS) LAZY_DRAWERS.delete(oldId);
+  OV_ROW_IDS = [];
+
   const tbody = document.getElementById('ov-body');
-  tbody.innerHTML = '';
+  const rowsHtml = [];
   for (const o of list) {
     const id = uid();
+    OV_ROW_IDS.push(id);
+    LAZY_DRAWERS.set(id, () => buildLotView(o));
     const late  = o.isOverdue;
     const badge = late
       ? `<span class="badge b-overdue">${t('badgeOverdue')}</span>`
       : `<span class="badge b-ok">${t('badgeOk')}</span>`;
-    tbody.insertAdjacentHTML('beforeend',`
+    rowsHtml.push(`
       <tr>
         <td><button class="xbtn" onclick="toggleRow('${id}',this)">+</button></td>
+        <td class="cust-col" style="display:${showCust?'':'none'}">${o.customerName ? esc(o.customerName) : '–'}</td>
+        <td class="cust-col" style="display:${showCust?'':'none'}">${o.orderNumber ? `<span title="${esc(o.orderNumber)}">${esc(truncateText(o.orderNumber, 15))}</span>` : '–'}</td>
         <td style="font-weight:700;white-space:nowrap">
           ${esc(o.partNumber)}
-          ${o.urgency==='all'  ? `<span class="badge b-urgent" style="margin-left:6px" title="All ${o.lotCount} lots urgent">🚨 ${t('allUrgent')}</span>` : ''}
-          ${o.urgency==='some' ? `<span class="badge b-urgent-partial" style="margin-left:6px" title="${o.urgentLots} of ${o.lotCount} lots urgent">⚡ ${o.urgentLots}/${o.lotCount} ${t('urgent')}</span>` : ''}
+          ${o.urgency==='all'  ? `<span class="badge b-urgent" style="margin-left:6px" title="All ${o.lotCount} lots urgent">🚨</span>` : ''}
+          ${o.urgency==='some' ? `<span class="badge b-urgent-partial" style="margin-left:6px" title="${o.urgentLots} of ${o.lotCount} lots urgent">⚡</span>` : ''}
         </td>
         <td><span class="badge b-neutral">${esc(o.orderType)}</span></td>
         <td class="num"><b>${fmtN(o.lotCount)}</b></td>
-        <td class="num">${fmtN(o.stepCount)}</td>
         <td class="num">${o.totalQty>0 ? fmtN(o.totalQty) : '–'}</td>
         <td class="num">${o.totalArea>0 ? fmtN(o.totalArea,1) : '–'}</td>
-        <td class="num" ${late?'style="color:var(--red);font-weight:700"':''}>${fmtN(o.overdueCount||0)}</td>
         <td class="num">${fmtDt(o.maxEnd)}</td>
         <td class="num">${fmtS(o.exFactory)}</td>
+        <td class="num">${lateDaysHtml(o.lateDays)}</td>
         <td>${badge}</td>
       </tr>
       <tr class="xrow" id="${id}">
-        <td class="xcell" colspan="10"><div class="xinner">${buildLotView(o)}</div></td>
+        <td class="xcell" colspan="${colCount}"><div class="xinner"></div></td>
       </tr>
     `);
   }
+  tbody.innerHTML = rowsHtml.join('');
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1405,6 +1613,13 @@ function toggleRow(id,btn){
   const row=document.getElementById(id);
   const open=row.classList.toggle('open');
   btn.textContent=open?'−':'+';
+  if (open) {
+    const inner = row.querySelector('.xinner');
+    if (inner && inner.dataset.loaded !== '1') {
+      const factory = LAZY_DRAWERS.get(id);
+      if (factory) { inner.innerHTML = factory(); inner.dataset.loaded = '1'; }
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1497,14 +1712,20 @@ function renderBacklog() {
   `;
   document.getElementById('bl-cnt').textContent=procs.length+' processes';
 
+  // Drop lazy-drawer factories owned by this table from the previous render first.
+  for (const oldId of BL_ROW_IDS) LAZY_DRAWERS.delete(oldId);
+  BL_ROW_IDS = [];
+
   const tbody=document.getElementById('bl-body');
-  tbody.innerHTML='';
+  const rowsHtml=[];
   for(const p of procs){
     const pct=p.count>0?Math.round(p.overdue/p.count*100):0;
     const red=p.overdue>0;
     const id=uid();
+    BL_ROW_IDS.push(id);
+    LAZY_DRAWERS.set(id, () => buildBacklogDrawer(p, lotEstEnd));
     const oeeColor = p.oee.oee>=80?'color:var(--green)':p.oee.oee>=50?'color:var(--amber)':'color:var(--red)';
-    tbody.insertAdjacentHTML('beforeend',`
+    rowsHtml.push(`
       <tr>
         <td><button class="xbtn" onclick="toggleRow('${id}',this)">+</button></td>
         <td style="font-weight:700">${esc(p.name)}</td>
@@ -1518,49 +1739,55 @@ function renderBacklog() {
         <td class="wrap">${p.types.map(ty=>`<span class="badge b-neutral" style="margin:1px">${esc(ty)}</span>`).join('')}</td>
       </tr>
       <tr class="xrow" id="${id}">
-        <td class="xcell" colspan="13">
-          <div class="xinner">
-            <div class="xinner-title">${esc(p.name)} — ${p.count} tasks</div>
-            <div class="tbl-scr"><table>
-              <thead><tr>
-                <th>${t('colPN')}</th>
-                <th>${t('colLotId')}</th>
-                <th>${t('colOrderType')}</th>
-                <th class="num">${t('colPanels')}</th>
-                <th class="num">${t('colArea')}</th>
-                <th>${t('colStation')}</th>
-                <th class="num">${t('colStepStart')}</th>
-                <th class="num">${t('colStepEnd')}</th>
-                <th class="num">${t('colEstCompletion')}</th>
-                <th class="num">${t('colExFactory')}</th>
-                <th>${t('colStatus')}</th>
-                <th>${t('colBacklog')}</th>
-              </tr></thead>
-              <tbody>
-                ${p.tasks.slice(0,300).map(r=>`
-                  <tr>
-                    <td style="font-weight:600">${esc(r['part number']||'')}</td>
-                    <td><span class="lot-link" onclick="openLotDrawer('${esc(r._lot||'')}')">${esc(r._lot||'–')}</span></td>
-                    <td><span class="badge b-neutral">${esc(r['order_type']||'')}</span></td>
-                    <td class="num">${r._qty>0?fmtN(r._qty):'–'}</td>
-                    <td class="num">${fmtN(r._area,1)}</td>
-                    <td>${esc(r['Station']||'')}</td>
-                    <td class="num">${r._setupHrs>0?fmtN(r._setupHrs,2):'–'}</td>
-                    <td class="num">${fmtDt(r._start)}</td>
-                    <td class="num">${fmtDt(r._end)}</td>
-                    <td class="num" style="font-weight:600">${fmtDt(lotEstEnd.get(r._lot)||null)}</td>
-                    <td class="num">${fmtS(r._exFac)}</td>
-                    <td>${r._late?`<span class="badge b-overdue">${t('badgeLate')}</span>`:`<span class="badge b-ok">${t('badgeGood')}</span>`}</td>
-                    <td style="font-size:.72rem;color:var(--muted)">${esc(r['in backlog']||'')}</td>
-                  </tr>`).join('')}
-                ${p.tasks.length>300?`<tr><td colspan="13" class="note">… and ${p.tasks.length-300} more</td></tr>`:''}
-              </tbody>
-            </table></div>
-          </div>
-        </td>
+        <td class="xcell" colspan="13"><div class="xinner"></div></td>
       </tr>
     `);
   }
+  tbody.innerHTML = rowsHtml.join('');
+}
+
+// Builds the per-process task table shown inside a Process Backlog drawer.
+// Pulled out of renderBacklog() so it can be computed lazily (see LAZY_DRAWERS) —
+// only the process the user actually expands pays this cost.
+function buildBacklogDrawer(p, lotEstEnd) {
+  return `
+    <div class="xinner-title">${esc(p.name)} — ${p.count} tasks</div>
+    <div class="tbl-scr"><table>
+      <thead><tr>
+        <th>${t('colPN')}</th>
+        <th>${t('colLotId')}</th>
+        <th>${t('colOrderType')}</th>
+        <th class="num">${t('colPanels')}</th>
+        <th class="num">${t('colArea')}</th>
+        <th>${t('colStation')}</th>
+        <th class="num">${t('colStepStart')}</th>
+        <th class="num">${t('colStepEnd')}</th>
+        <th class="num">${t('colEstCompletion')}</th>
+        <th class="num">${t('colExFactory')}</th>
+        <th>${t('colStatus')}</th>
+        <th>${t('colBacklog')}</th>
+      </tr></thead>
+      <tbody>
+        ${p.tasks.slice(0,300).map(r=>`
+          <tr>
+            <td style="font-weight:600">${esc(r['part number']||'')}</td>
+            <td><span class="lot-link" onclick="openLotDrawer('${esc(r._lot||'')}')">${esc(r._lot||'–')}</span></td>
+            <td><span class="badge b-neutral">${esc(r['order_type']||'')}</span></td>
+            <td class="num">${r._qty>0?fmtN(r._qty):'–'}</td>
+            <td class="num">${fmtN(r._area,1)}</td>
+            <td>${esc(r['Station']||'')}</td>
+            <td class="num">${r._setupHrs>0?fmtN(r._setupHrs,2):'–'}</td>
+            <td class="num">${fmtDt(r._start)}</td>
+            <td class="num">${fmtDt(r._end)}</td>
+            <td class="num" style="font-weight:600">${fmtDt(lotEstEnd.get(r._lot)||null)}</td>
+            <td class="num">${fmtS(r._exFac)}</td>
+            <td>${r._late?`<span class="badge b-overdue">${t('badgeLate')}</span>`:`<span class="badge b-ok">${t('badgeGood')}</span>`}</td>
+            <td style="font-size:.72rem;color:var(--muted)">${esc(r['in backlog']||'')}</td>
+          </tr>`).join('')}
+        ${p.tasks.length>300?`<tr><td colspan="13" class="note">… and ${p.tasks.length-300} more</td></tr>`:''}
+      </tbody>
+    </table></div>
+  `;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1787,9 +2014,17 @@ function ptResetAll() {
 //  LEFT PANEL: full order table with inline action picker
 // ─────────────────────────────────────────────────────
 function scFilterOrders() {
-  const q = (document.getElementById('sc-search').value||'').trim().toLowerCase();
+  const showCust = updateCustColVisibility();
+  const colCount = showCust ? 6 : 5;
+  const srchEl = document.getElementById('sc-search');
+  if (srchEl) srchEl.placeholder = showCust ? t('scSearchPlaceholderCust') : t('scSearchPlaceholder');
+
+  const q = (srchEl?.value||'').trim().toLowerCase();
   const list = q
-    ? PT.allOrders.filter(o=>o.partNumber.toLowerCase().includes(q))
+    ? PT.allOrders.filter(o=>
+        o.partNumber.toLowerCase().includes(q) ||
+        (o.customerName && o.customerName.toLowerCase().includes(q))
+      )
     : PT.allOrders;
 
   const tbody = document.getElementById('sc-order-list');
@@ -1797,7 +2032,7 @@ function scFilterOrders() {
   if (cntEl) cntEl.textContent = list.length + ' ' + t('ordersLabel');
 
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="note">${t('lblNoMatches')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${colCount}" class="note">${t('lblNoMatches')}</td></tr>`;
     return;
   }
 
@@ -1805,15 +2040,13 @@ function scFilterOrders() {
     const key = ptOrderKey(o);
     const c = PT.tags.get(key);
     const checked = !!c;
-    const lateDays = (o.maxEnd && o.exFactory) ? Math.round((o.maxEnd - o.exFactory) / 86400000) : null;
-    const lateCell = lateDays===null ? '–'
-      : lateDays > 0 ? `<span style="color:var(--red);font-weight:700">+${lateDays}d</span>`
-      : `<span style="color:var(--green);font-weight:600">${t('ptOnTimeShort')}</span>`;
+    const lateCell = lateDaysHtml(o.lateDays);
 
     const checkboxCell = `<input type="checkbox" data-key="${esc(key)}" data-pn="${esc(o.partNumber)}" data-action="checkbox" ${checked?'checked':''} style="width:16px;height:16px;cursor:pointer">`;
 
     return `<tr ${checked?'style="background:#f0fdf4"':''}>
       <td>${checkboxCell}</td>
+      <td class="cust-col" style="display:${showCust?'':'none'}">${o.customerName ? esc(o.customerName) : '–'}</td>
       <td style="font-weight:700">${esc(o.partNumber)}</td>
       <td class="num">${fmtS(o.exFactory)}</td>
       <td class="num">${fmtDt(o.maxEnd)}</td>
@@ -1821,7 +2054,7 @@ function scFilterOrders() {
     </tr>`;
   }).join('');
 
-  const moreRow = list.length > 300 ? `<tr><td colspan="5" class="note">… and ${list.length-300} more — refine your search</td></tr>` : '';
+  const moreRow = list.length > 300 ? `<tr><td colspan="${colCount}" class="note">… and ${list.length-300} more — refine your search</td></tr>` : '';
   tbody.innerHTML = rows + moreRow;
 
   tbody.querySelectorAll('[data-action]').forEach(el => {
@@ -2014,8 +2247,6 @@ function ptResetBaseline() {
 function renderScenarioLang() {
   renderSelectedList();
   scFilterOrders();
-  const srch = document.getElementById('sc-search');
-  if (srch) srch.placeholder = t('scSearchPlaceholder');
   const nr = document.getElementById('sc-no-results');
   if (nr) nr.textContent = t('ptNoResults');
   const no = document.getElementById('sc-no-orders-yet');
@@ -2215,12 +2446,17 @@ function renderEquipment() {
 
   tbodyEl.innerHTML='';
 
+  // Drop lazy-drawer factories owned by this table from the previous render first.
+  for (const oldId of EQ_ROW_IDS) LAZY_DRAWERS.delete(oldId);
+  EQ_ROW_IDS = [];
+
+  const rowsHtml = [];
   for (const p of procs) {
     const procOeeColor=p.procOee>=80?'var(--green)':p.procOee>=50?'var(--amber)':'var(--red)';
     const batchBadge=p.hasBatching
       ?`<span class="badge" style="background:#fff3e0;color:var(--amber);border:1px solid #ffcc80;margin-left:6px">⚡ Batch opp.</span>`:'';
 
-    tbodyEl.insertAdjacentHTML('beforeend',`
+    rowsHtml.push(`
       <tr style="background:#f0f4f8;border-top:2px solid var(--border)">
         <td colspan="11" style="padding:7px 14px">
           <span style="font-weight:800;font-size:.84rem;color:var(--hdr)">${esc(p.proc)}</span>
@@ -2233,6 +2469,8 @@ function renderEquipment() {
 
     for (const s of p.stations) {
       const rowId=uid();
+      EQ_ROW_IDS.push(rowId);
+      LAZY_DRAWERS.set(rowId, () => buildStationDetail(s,winS,winE,slotMs,slotLabel,numDays));
       const oeeColor=s.oee>=80?'var(--green)':s.oee>=50?'var(--amber)':'var(--red)';
       const coBadge=s.changeovers===0
         ?`<span class="badge b-ok">0</span>`
@@ -2244,7 +2482,7 @@ function renderEquipment() {
         ?`<span class="badge" style="background:#fff3e0;color:var(--amber);border:1px solid #ffcc80;margin-left:5px">⚡</span>`:'';
       const oeeBar=`<div style="height:8px;border-radius:4px;overflow:hidden;width:70px;background:#eceff1;display:inline-block;vertical-align:middle;margin-right:4px"><div style="width:${s.oee}%;height:100%;background:${oeeColor}"></div></div>`;
 
-      tbodyEl.insertAdjacentHTML('beforeend',`
+      rowsHtml.push(`
         <tr class="eq-stn-row${hasBatch?' eq-batch':''}" onclick="eqToggle('${rowId}')">
           <td><button class="xbtn" id="xbtn-${rowId}">+</button></td>
           <td style="font-weight:700;padding-left:22px">${esc(s.stn)}${stnBatchBadge}</td>
@@ -2264,10 +2502,9 @@ function renderEquipment() {
           </td>
         </tr>
       `);
-      // Inject detail content separately to avoid SVG breaking template literal
-      document.getElementById('xinner-'+rowId).innerHTML = buildStationDetail(s,winS,winE,slotMs,slotLabel,numDays);
     }
   }
+  tbodyEl.innerHTML = rowsHtml.join('');
 }
 
 function eqToggle(rowId) {
@@ -2277,6 +2514,13 @@ function eqToggle(rowId) {
   const open=xrow.style.display==='none';
   xrow.style.display=open?'table-row':'none';
   btn.textContent=open?'−':'+';
+  if (open) {
+    const inner = document.getElementById('xinner-'+rowId);
+    if (inner && inner.dataset.loaded !== '1') {
+      const factory = LAZY_DRAWERS.get(rowId);
+      if (factory) { inner.innerHTML = factory(); inner.dataset.loaded = '1'; }
+    }
+  }
 }
 
 function buildStationDetail(s, winS, winE, slotMs, slotLabel, numDays) {
@@ -2351,7 +2595,8 @@ function openLotDrawer(lotId) {
   const exFac  = tasks[0]._exFac;
   const maxEnd = new Date(Math.max(...tasks.map(t=>t._end)));
   const pn     = tasks[0]['part number'] || '';
-  const isLate = exFac && maxEnd > exFac;
+  const lotLateDays = exFac ? Math.round((maxEnd - exFac) / 86400000) : null;
+  const isLate = lotLateDays !== null && lotLateDays > 0;
 
   // Title
   document.getElementById('lot-drawer-title').innerHTML =

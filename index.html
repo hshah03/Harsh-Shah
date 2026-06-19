@@ -1776,7 +1776,6 @@ function buildBacklogDrawer(p, lotEstEnd) {
             <td class="num">${r._qty>0?fmtN(r._qty):'–'}</td>
             <td class="num">${fmtN(r._area,1)}</td>
             <td>${esc(r['Station']||'')}</td>
-            <td class="num">${r._setupHrs>0?fmtN(r._setupHrs,2):'–'}</td>
             <td class="num">${fmtDt(r._start)}</td>
             <td class="num">${fmtDt(r._end)}</td>
             <td class="num" style="font-weight:600">${fmtDt(lotEstEnd.get(r._lot)||null)}</td>
@@ -1784,7 +1783,7 @@ function buildBacklogDrawer(p, lotEstEnd) {
             <td>${r._late?`<span class="badge b-overdue">${t('badgeLate')}</span>`:`<span class="badge b-ok">${t('badgeGood')}</span>`}</td>
             <td style="font-size:.72rem;color:var(--muted)">${esc(r['in backlog']||'')}</td>
           </tr>`).join('')}
-        ${p.tasks.length>300?`<tr><td colspan="13" class="note">… and ${p.tasks.length-300} more</td></tr>`:''}
+        ${p.tasks.length>300?`<tr><td colspan="12" class="note">… and ${p.tasks.length-300} more</td></tr>`:''}
       </tbody>
     </table></div>
   `;

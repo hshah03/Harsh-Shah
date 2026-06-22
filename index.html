@@ -1213,6 +1213,17 @@ async function processRows(raw, file) {
     }
 
     showLoad('Building orders…'); await tick();
+
+    // ── Inner-layer group normalisation ──────────────────────────────────────
+    // Pailot splits multilayer PCBs into separate "orders" per inner-layer pair:
+    //   J0600079A02.1       → outer layers (钻孔, 压合, FQC, etc.)
+    //   J0600079A02.1_2/3   → layers 2&3 (排板, 棕氧化, 内层曝光, etc.)
+    //   J0600079A02.1_4/5   → layers 4&5 (same inner-layer steps)
+    // These are the same physical board, same WO number (first lot-ID segment).
+    // We remap suffix-PN rows to the base PN so buildOrders() groups them
+    // together. Panels/area are only counted from base (layer-group 00) rows.
+    G.rows = normalizeInnerLayerRows(G.rows);
+
     buildOrders();
 
     // Build PN → Panel Size lookup (fills gaps where Panel Size is missing for a row
@@ -1283,6 +1294,47 @@ function setDI(id,v){ document.getElementById(id).value=v; }
 // ═══════════════════════════════════════════════════════
 //  BUILD ORDERS  (key = partNumber + exFactory date)
 // ═══════════════════════════════════════════════════════
+// ─────────────────────────────────────────────────────────────────────────────
+//  INNER-LAYER GROUP NORMALISATION
+//  Pailot schedules inner-layer pairs (layers 2/3, 4/5, 6/7) as separate
+//  "orders" with a suffix like _2/3 or _4/5 appended to the part number.
+//  The lot ID encodes the same work-order prefix: WOA26XXXX-00-... (outer),
+//  WOA26XXXX-11-... (inner group 1), WOA26XXXX-12-... (inner group 2), etc.
+//  This function rewrites suffix-PN rows to use the base PN so they are
+//  grouped with their parent order in buildOrders().
+// ─────────────────────────────────────────────────────────────────────────────
+const INNER_LAYER_SUFFIX_RE = /_\d+\/\d+$/;
+
+function normalizeInnerLayerRows(rows) {
+  // Pass 1: build  workOrderPrefix → basePn  from non-suffix rows.
+  // The lot ID format is  WOnnnnnn-gg-seq-total  where gg='00' for outer layers.
+  const woToBasePn = new Map();
+  for (const r of rows) {
+    const pn = (r['part number'] || '').trim();
+    if (INNER_LAYER_SUFFIX_RE.test(pn)) continue;   // skip suffix rows
+    const lot  = (r['Order number'] || '').trim();
+    const woPfx = lot.split('-')[0];                 // e.g. "WOA260610273"
+    if (woPfx && !woToBasePn.has(woPfx)) woToBasePn.set(woPfx, pn);
+  }
+
+  // Pass 2: rewrite suffix-PN rows.
+  let found = 0;
+  const out = rows.map(r => {
+    const pn = (r['part number'] || '').trim();
+    if (!INNER_LAYER_SUFFIX_RE.test(pn)) return r;   // not a suffix row
+
+    const lot    = (r['Order number'] || '').trim();
+    const woPfx  = lot.split('-')[0];
+    const basePn = woToBasePn.get(woPfx) || pn.replace(INNER_LAYER_SUFFIX_RE, '');
+    found++;
+    // Shallow copy with remapped PN and a flag so buildOrders() can
+    // skip inner-layer rows when computing panel counts / area.
+    return Object.assign({}, r, { 'part number': basePn, _innerLayer: true });
+  });
+
+  return out;
+}
+
 function buildOrders() {
   const map = new Map();
   for (const r of G.rows) {
@@ -1301,6 +1353,30 @@ function buildOrders() {
     const lots      = new Set(o.tasks.map(t=>t._lot).filter(Boolean));
     const steps     = new Set(o.tasks.map(t=>t['process_name']).filter(Boolean));
 
+    // Inner-layer rows are the same physical panels as the base — exclude them
+    // from quantity/area totals to avoid double-counting, and from lot count.
+    const baseTasks = o.tasks.filter(t => !t._innerLayer);
+    const baseLots  = new Set(baseTasks.map(t=>t._lot).filter(Boolean));
+    const hasInnerLayers = baseTasks.length < o.tasks.length;
+    const innerLayerLots = new Set(o.tasks.filter(t=>t._innerLayer).map(t=>t._lot).filter(Boolean));
+    const innerLayerCount = innerLayerLots.size;
+
+    // Physical lot count — when base lots exist they are canonical (one per board).
+    // When only inner layers are in the file (base hasn't started yet), each unique
+    // work-order prefix represents one physical lot (layers 2/3 + 4/5 + 6/7 of the
+    // same board all share the same prefix, e.g. WOA260615430-11/12/13-... → 1 lot).
+    let physicalLotCount;
+    if (baseLots.size > 0) {
+      physicalLotCount = baseLots.size;
+    } else {
+      const woSet = new Set();
+      for (const t of o.tasks) {
+        const woPfx = (t._lot || '').split('-')[0];
+        if (woPfx) woSet.add(woPfx);
+      }
+      physicalLotCount = woSet.size;
+    }
+
     // _late = estimated lot completion (maxEnd) is after ExFactoryDate, by calendar
     // day — not exact timestamp, so finishing later the same day as EXF still counts
     // as on time (matches the day-level "Days Late" figure shown in the table).
@@ -1310,16 +1386,16 @@ function buildOrders() {
     // Stamp _late back onto each task so filters/badges work downstream
     for (const t of o.tasks) t._late = isLotLate;
 
-    const overdueCount = isLotLate ? lots.size : 0;
-    const totalArea = lotAreaSum(o.tasks);
+    const overdueCount = isLotLate ? physicalLotCount : 0;
+    const totalArea = lotAreaSum(baseTasks);
     const lotQtyMap = new Map();
-    for (const t of o.tasks) { if (t._lot && !lotQtyMap.has(t._lot)) lotQtyMap.set(t._lot, t._qty||0); }
+    for (const t of baseTasks) { if (t._lot && !lotQtyMap.has(t._lot)) lotQtyMap.set(t._lot, t._qty||0); }
     const totalQty = [...lotQtyMap.values()].reduce((s,v)=>s+v,0);
 
     // Customer Name / Order Number — looked up per lot via the woNumber mapping file
     // (woNumber there === Lot ID here), then rolled up to the order level.
     const customers = new Set(), orderNums = new Set();
-    for (const lid of lots) {
+    for (const lid of baseLots) {
       custLotsTotal++;
       const info = G.custMap.get(lid);
       if (info) {
@@ -1331,20 +1407,21 @@ function buildOrders() {
     const customerName = customers.size  ? [...customers].join(' / ')  : '';
     const orderNumber  = orderNums.size  ? [...orderNums].join(' / ')  : '';
 
-    // Urgency: a lot is urgent if any of its tasks has State = 'Urgent'
+    // Urgency: a lot is urgent if any of its tasks has State='Urgent' OR is_urgent='True'
+    // (the new file format adds an explicit 'is urgent' column; older files rely on State only)
     const lotUrgent = new Map();
-    for (const t of o.tasks) {
+    for (const t of baseTasks) {
       const lid = t._lot;
       if (!lotUrgent.has(lid)) lotUrgent.set(lid, false);
-      if ((t['State']||'') === 'Urgent') lotUrgent.set(lid, true);
+      if ((t['State']||'') === 'Urgent' || (t['is urgent']||'') === 'True') lotUrgent.set(lid, true);
     }
     const urgentLots = [...lotUrgent.values()].filter(Boolean).length;
-    const urgency = urgentLots === lots.size && lots.size > 0 ? 'all'
+    const urgency = urgentLots === physicalLotCount && physicalLotCount > 0 ? 'all'
                   : urgentLots > 0 ? 'some' : 'none';
 
-    return { ...o, maxEnd, lotCount:lots.size, stepCount:steps.size, lateDays,
+    return { ...o, maxEnd, lotCount:physicalLotCount, stepCount:steps.size, lateDays,
              overdueCount, isOverdue: overdueCount>0, urgency, urgentLots, totalArea, totalQty,
-             customerName, orderNumber };
+             customerName, orderNumber, hasInnerLayers, innerLayerCount };
   });
 
   G.custMatchStats = { matched: custLotsMatched, total: custLotsTotal };
@@ -1507,6 +1584,7 @@ function renderOverview() {
           ${esc(o.partNumber)}
           ${o.urgency==='all'  ? `<span class="badge b-urgent" style="margin-left:6px" title="All ${o.lotCount} lots urgent">🚨</span>` : ''}
           ${o.urgency==='some' ? `<span class="badge b-urgent-partial" style="margin-left:6px" title="${o.urgentLots} of ${o.lotCount} lots urgent">⚡</span>` : ''}
+          ${o.hasInnerLayers   ? `<span class="badge" style="margin-left:5px;background:#e8f4fd;color:#1565c0;border:1px solid #90caf9;font-size:.6rem" title="Inner layer groups (${o.innerLayerCount} lots) merged into this order">⬛ ${o.innerLayerCount}IL</span>` : ''}
         </td>
         <td><span class="badge b-neutral">${esc(o.orderType)}</span></td>
         <td class="num"><b>${fmtN(o.lotCount)}</b></td>
